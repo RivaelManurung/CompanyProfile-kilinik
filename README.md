@@ -1,57 +1,38 @@
-# Klinik Sehat Nusantara — Company Profile
+# Klinik Sehat Nusantara — Monorepo
 
-Production-grade company profile for a medical clinic, built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**, **Tailwind CSS v4**, and **Framer Motion**. Bahasa Indonesia, fully responsive, accessible, and animated.
+Company profile website + admin dashboard for a medical clinic.
 
-> Brand name & content are placeholders (`src/lib/site.ts`, `src/lib/data.ts`) — swap them for real data before launch.
+```
+frontend/   Next.js 16 · React 19 · TypeScript · Tailwind v4 · Framer Motion · Leaflet
+            └─ public site + /admin dashboard (shadcn/ReUI components, recharts)
+backend/    Go · Gin · GORM · PostgreSQL · JWT
+            └─ REST API for the site + admin
+```
 
-## Quick start
+## Run everything (3 processes)
 
 ```bash
-npm install
-npm run dev      # http://localhost:3000
-npm run build    # production build (all pages prerendered / SSG)
-npm start        # serve the production build
+# 1) PostgreSQL (Docker, port 5433)
+docker start ksn-postgres        # or the `docker run …` in backend/README.md
+
+# 2) Backend API → http://localhost:4000
+cd backend && go run .
+
+# 3) Frontend → http://localhost:3000
+cd frontend && npm install && npm run dev
 ```
 
-## Pages
+- Public site: <http://localhost:3000>
+- Admin dashboard: <http://localhost:3000/admin>  → login `admin@sehatnusantara.id` / `Admin#12345`
 
-| Route | Description |
-|-------|-------------|
-| `/` | Homepage — hero carousel, services, stats, why-us, doctors, promos, locations, testimonials, articles, CTA |
-| `/layanan` | Full services with feature lists |
-| `/kisah-kami` | About — mission/vision, timeline, values |
-| `/dokter` | Doctor directory with specialty filters |
-| `/lokasi` | Clinic locations |
-| `/artikel` | Articles list with client-side category filter |
-| `/artikel/[slug]` | Article detail (SSG via `generateStaticParams`) |
-| `/kontak` | Contact info + animated appointment form |
+## What's wired
 
-Also: `sitemap.xml`, `robots.txt`, custom `404`.
+- The public **contact form** (`/kontak`) POSTs real appointments to the API.
+- The admin dashboard manages **appointments, doctors, articles, services, locations, promotions** (full CRUD) plus an **overview** (stat cards, 14-day chart, status breakdown, recent bookings).
+- `/admin/*` is gated by `frontend/src/proxy.ts` (Next 16 proxy) on the auth cookie; the API authoritatively validates the JWT.
 
-## Design system
+See `frontend/README.md` and `backend/README.md` for details.
 
-- **Palette:** medical teal (`primary`) + emerald (`accent`) + `ink` neutrals — defined as Tailwind v4 `@theme` tokens in `src/app/globals.css`.
-- **Fonts:** Plus Jakarta Sans (display) + Inter (body) via `next/font`.
-- **Animations:** Framer Motion scroll reveals (`Reveal`, `Stagger`), animated counters, hero carousel, scroll-progress bar, floating contact dial, marquee, blobs. Respects `prefers-reduced-motion`.
-- **Maps:** interactive **Leaflet + OpenStreetMap** (CARTO Positron tiles) on `/lokasi` and `/kontak` — no API key required. Custom brand markers + popups in `src/components/sections/ClinicMapInner.tsx`; loaded client-only via `next/dynamic` (`ssr: false`). Coordinates live in `src/lib/data.ts`.
-
-## Structure
-
-```
-src/
-├── app/                # routes, layout, metadata, sitemap, robots
-├── components/
-│   ├── layout/         # Header, Footer, FloatingActions, ScrollProgress
-│   ├── sections/       # page sections (Hero, Services, …, ContactForm)
-│   └── ui/             # primitives (Button, Container, Reveal, cards…)
-└── lib/                # site config, content data, utils
-```
-
-## Wiring up before launch
-
-- Replace brand/contact in `src/lib/site.ts` and content in `src/lib/data.ts`.
-- Connect the contact form (`src/components/sections/ContactForm.tsx`) to your backend / email / WhatsApp API — currently it simulates submission.
-- Replace the placeholder photos in `public/doctors/` and `public/hero/` with your own (Unsplash stock used as placeholders — same filenames, no code change needed). Doctor file = `public/doctors/<slug>.jpg`; hero slides set via `image` in `src/lib/data.ts`.
-- Update `site.url` for correct OpenGraph / sitemap URLs.
-- Update each clinic's `position` (lat/lng) in `src/lib/data.ts` so the map markers point to the real addresses.
-# CompanyProfile-kilinik
+## Notes
+- Brand, content, doctor photos, and map coordinates are placeholders — swap before launch.
+- The ReUI public registry endpoint was returning 404 for core primitives at build time, so the dashboard uses the **shadcn/ui base** (the same Radix + Tailwind + CVA foundation ReUI builds on) with a teal-aligned token theme.

@@ -1,0 +1,90 @@
+package router
+
+import (
+	"time"
+
+	"sehatnusantara/api/internal/auth"
+	"sehatnusantara/api/internal/config"
+	"sehatnusantara/api/internal/handlers"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+)
+
+// Setup builds the Gin engine with all routes and middleware.
+func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
+	if cfg.IsProd() {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	r := gin.New()
+	r.Use(gin.Logger(), gin.Recovery())
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     cfg.CORSOrigins,
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+	r.Use(mutationOriginGuard(cfg))
+
+	h := handlers.New(db, cfg)
+	authMW := auth.Middleware(cfg.JWTSecret)
+
+	api := r.Group("/api")
+	{
+		api.GET("/health", h.Health)
+
+		// Auth
+		api.POST("/auth/login", rateLimit(8, 10*time.Minute, func(c *gin.Context) string {
+			return "login:" + c.ClientIP()
+		}), h.Login)
+		api.POST("/auth/logout", h.Logout)
+		api.GET("/auth/me", authMW, h.Me)
+
+		// Public website data
+		api.POST("/appointments", rateLimit(6, 10*time.Minute, func(c *gin.Context) string {
+			return "appointment:" + c.ClientIP()
+		}), h.CreateAppointment) // contact form
+		pub := api.Group("/public")
+		{
+			pub.GET("/doctors", h.PublicDoctors)
+			pub.GET("/services", h.PublicServices)
+			pub.GET("/locations", h.PublicLocations)
+			pub.GET("/promotions", h.PublicPromotions)
+			pub.GET("/articles", h.PublicArticles)
+			pub.GET("/articles/:slug", h.PublicArticleBySlug)
+		}
+
+		// Admin (protected)
+		admin := api.Group("/admin", authMW)
+		{
+			admin.GET("/stats", auth.RequirePermission(auth.PermissionDashboardRead), h.Stats)
+			admin.GET("/audit-logs", auth.RequirePermission(auth.PermissionAuditRead), h.ListAuditLogs)
+
+			admin.GET("/appointments", auth.RequirePermission(auth.PermissionAppointmentsRead), h.ListAppointments)
+			admin.GET("/appointments/:id", auth.RequirePermission(auth.PermissionAppointmentsRead), h.GetAppointment)
+			admin.PATCH("/appointments/:id", auth.RequirePermission(auth.PermissionAppointmentsWrite), h.UpdateAppointment)
+			admin.DELETE("/appointments/:id", auth.RequirePermission(auth.PermissionAppointmentsDelete), h.DeleteAppointment)
+
+			registerCRUD(admin, "doctors", auth.PermissionClinicRead, auth.PermissionClinicWrite, auth.PermissionClinicDelete, h.ListDoctors, h.GetDoctor, h.CreateDoctor, h.UpdateDoctor, h.DeleteDoctor)
+			registerCRUD(admin, "articles", auth.PermissionContentRead, auth.PermissionContentWrite, auth.PermissionContentDelete, h.ListArticles, h.GetArticle, h.CreateArticle, h.UpdateArticle, h.DeleteArticle)
+			registerCRUD(admin, "services", auth.PermissionClinicRead, auth.PermissionClinicWrite, auth.PermissionClinicDelete, h.ListServices, h.GetService, h.CreateService, h.UpdateService, h.DeleteService)
+			registerCRUD(admin, "locations", auth.PermissionClinicRead, auth.PermissionClinicWrite, auth.PermissionClinicDelete, h.ListLocations, h.GetLocation, h.CreateLocation, h.UpdateLocation, h.DeleteLocation)
+			registerCRUD(admin, "promotions", auth.PermissionContentRead, auth.PermissionContentWrite, auth.PermissionContentDelete, h.ListPromotions, h.GetPromotion, h.CreatePromotion, h.UpdatePromotion, h.DeletePromotion)
+		}
+	}
+
+	return r
+}
+
+// registerCRUD wires the standard 5 REST routes for a resource.
+func registerCRUD(g *gin.RouterGroup, name, readPermission, writePermission, deletePermission string, list, get, create, update, del gin.HandlerFunc) {
+	g.GET("/"+name, auth.RequirePermission(readPermission), list)
+	g.POST("/"+name, auth.RequirePermission(writePermission), create)
+	g.GET("/"+name+"/:id", auth.RequirePermission(readPermission), get)
+	g.PUT("/"+name+"/:id", auth.RequirePermission(writePermission), update)
+	g.DELETE("/"+name+"/:id", auth.RequirePermission(deletePermission), del)
+}
