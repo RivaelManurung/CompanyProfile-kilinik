@@ -61,11 +61,44 @@ var rolePermissions = map[string]map[string]bool{
 	},
 }
 
+// AssignableRoles is the ordered list of roles an admin can be given in the UI.
+// (The internal "admin" alias is intentionally excluded.)
+var AssignableRoles = []string{
+	RoleSuperAdmin, RoleClinicAdmin, RoleReceptionist, RoleContentEditor, RoleViewer,
+}
+
+// AllPermissions is the ordered catalog of permissions, used to render the
+// role/permission matrix in the dashboard.
+var AllPermissions = []string{
+	PermissionDashboardRead,
+	PermissionAppointmentsRead, PermissionAppointmentsWrite, PermissionAppointmentsDelete,
+	PermissionContentRead, PermissionContentWrite, PermissionContentDelete,
+	PermissionClinicRead, PermissionClinicWrite, PermissionClinicDelete,
+	PermissionSystemRead, PermissionSystemWrite, PermissionAuditRead,
+}
+
+// IsAssignableRole reports whether a role can be assigned to an admin.
+func IsAssignableRole(role string) bool {
+	for _, r := range AssignableRoles {
+		if r == role {
+			return true
+		}
+	}
+	return false
+}
+
 func PermissionsForRole(role string) []string {
+	if role == RoleSuperAdmin {
+		out := make([]string, len(AllPermissions))
+		copy(out, AllPermissions)
+		return out
+	}
 	perms := rolePermissions[role]
 	out := make([]string, 0, len(perms))
-	for permission := range perms {
-		out = append(out, permission)
+	for _, permission := range AllPermissions {
+		if perms[permission] {
+			out = append(out, permission)
+		}
 	}
 	return out
 }

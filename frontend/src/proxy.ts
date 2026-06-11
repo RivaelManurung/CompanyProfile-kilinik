@@ -9,6 +9,7 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasToken = Boolean(request.cookies.get(COOKIE)?.value);
   const isLogin = pathname === "/admin/login";
+  const forceLogin = request.nextUrl.searchParams.get("force") === "1";
 
   if (pathname.startsWith("/admin") && !isLogin && !hasToken) {
     const url = request.nextUrl.clone();
@@ -17,7 +18,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (isLogin && hasToken) {
+  if (isLogin && hasToken && !forceLogin) {
     const url = request.nextUrl.clone();
     url.pathname = "/admin";
     url.search = "";

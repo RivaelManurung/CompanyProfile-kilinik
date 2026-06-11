@@ -1,221 +1,178 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Image from "next/image";
-import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Star, ShieldCheck, Clock, HeartPulse, Stethoscope } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowRight, Star, ShieldCheck, Clock, Stethoscope, Award } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/brand-button";
-import { slides } from "@/lib/data";
-
-const AUTOPLAY = 6000;
 
 export function Hero() {
-  const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
-
-  useEffect(() => {
-    if (paused) return;
-    const t = setInterval(() => setIndex((i) => (i + 1) % slides.length), AUTOPLAY);
-    return () => clearInterval(t);
-  }, [paused, index]);
-
-  const slide = slides[index];
-  const Icon = slide.icon;
-
   return (
-    <section className="relative overflow-hidden pt-28 pb-20 lg:pt-36 lg:pb-28">
-      {/* Background decor */}
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-primary-50/70 via-white to-white" />
-      <div className="bg-grid absolute inset-0 -z-10 opacity-60 [mask-image:radial-gradient(ellipse_at_top,#000_30%,transparent_75%)]" />
-      <div className="animate-blob absolute -left-24 top-20 -z-10 h-72 w-72 bg-primary-200/40 blur-3xl" />
-      <div className="animate-blob absolute -right-16 top-40 -z-10 h-80 w-80 bg-accent-200/40 blur-3xl [animation-delay:-4s]" />
+    <section className="relative overflow-hidden pt-24 pb-16 lg:pt-32 lg:pb-24">
+      {/* Background decorations - subtle, warm and clinical, no floating blobs */}
+      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-primary-50/40 via-white to-white" />
+      <div className="bg-grid absolute inset-0 -z-10 opacity-30 [mask-image:radial-gradient(ellipse_at_top,#000_30%,transparent_70%)]" />
 
-      <Container className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
-        {/* Left: copy */}
-        <div>
+      <Container className="grid items-center gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:gap-16">
+        
+        {/* Left Column: Premium Healthcare Visual Block */}
+        <div className="relative order-2 lg:order-1 lg:pr-6">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="relative mx-auto w-full max-w-[420px] lg:max-w-none"
+          >
+            {/* Main Image Container */}
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[2.5rem] border border-ink-150/40 bg-white p-2 shadow-card sm:aspect-[1/1] lg:aspect-[4/5]">
+              <div className="relative h-full w-full overflow-hidden rounded-[2rem] bg-ink-50">
+                <Image
+                  src="/hero/doctor-patient-consult.png"
+                  alt="Dokter SehatNusantara berkonsultasi secara hangat dengan pasien"
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 45vw"
+                  className="object-cover object-[center_25%] transition-transform duration-700 hover:scale-103"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-ink-950/20 via-transparent to-transparent" />
+              </div>
+            </div>
+
+            {/* Floating Card 1: Accreditation Badge (Top Right) */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: 0.45, duration: 0.5, ease: "easeOut" }}
+              className="absolute -top-4 -right-2 z-25 flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-lift border border-ink-100/80"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-50 text-accent-600">
+                <Award className="h-5 w-5" />
+              </span>
+              <div className="text-left">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-accent-700">Akreditasi</p>
+                <p className="text-xs font-bold text-ink-900 leading-tight">Paripurna Kemenkes</p>
+              </div>
+            </motion.div>
+
+            {/* Floating Card 2: Doctors On Duty Panel (Bottom Left) */}
+            <motion.div
+              initial={{ opacity: 0, x: -15 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6, duration: 0.55, ease: "easeOut" }}
+              className="absolute -bottom-5 -left-4 z-25 hidden sm:flex items-center gap-3.5 rounded-3xl bg-white p-4 shadow-lift border border-ink-100/80 max-w-[250px]"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
+                <Stethoscope className="h-5.5 w-5.5" />
+              </span>
+              <div className="text-left">
+                <p className="text-sm font-bold text-ink-900 leading-tight">Dokter Siaga Hari Ini</p>
+                <p className="mt-1 text-xs text-ink-500 leading-normal">8 dokter umum & spesialis siap melayani.</p>
+              </div>
+            </motion.div>
+
+            {/* Floating Card 3: Experience/Patient count (Bottom Right) */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7, duration: 0.55, ease: "easeOut" }}
+              className="absolute bottom-6 -right-4 z-25 hidden sm:flex items-center gap-3.5 rounded-2xl bg-dark px-4.5 py-3 shadow-lift text-white"
+            >
+              <div className="flex -space-x-1.5">
+                {["AP", "YK", "SR"].map((init, i) => (
+                  <span
+                    key={i}
+                    className="flex h-6.5 w-6.5 items-center justify-center rounded-full bg-primary-600 text-[9px] font-bold border-2 border-dark"
+                  >
+                    {init}
+                  </span>
+                ))}
+              </div>
+              <div className="text-left text-xs">
+                <p className="font-bold text-white leading-none">45+ Dokter</p>
+                <p className="mt-1 text-[9px] text-primary-200/70 font-medium">Aktif & Berpengalaman</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+
+        {/* Right Column: Copy and CTA Actions */}
+        <div className="order-1 lg:order-2 flex flex-col justify-center">
+          {/* Trust Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="self-start inline-flex items-center gap-2 rounded-full bg-primary-50/70 px-3.5 py-1.5 text-xs font-semibold text-primary-800 border border-primary-100/50"
+          >
+            <ShieldCheck className="h-3.5 w-3.5 text-primary-600" />
+            Klinik Pratama Rawat Jalan
+          </motion.div>
+
+          {/* Headline */}
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-5 text-4xl font-extrabold leading-[1.1] text-ink-900 sm:text-5xl lg:text-5xl xl:text-[3.25rem] tracking-tight"
+          >
+            Perawatan kesehatan yang terasa dekat, aman, dan terarah.
+          </motion.h1>
+
+          {/* Supporting Copy */}
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-5 max-w-xl text-base sm:text-lg leading-relaxed text-ink-500"
+          >
+            SehatNusantara membantu pasien mendapatkan layanan klinis yang jelas, nyaman, dan berstandar — dari konsultasi pertama hingga tindak lanjut perawatan.
+          </motion.p>
+
+          {/* CTAs */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-ink-700 shadow-soft ring-1 ring-ink-100"
-          >
-            <span className="flex -space-x-1.5">
-              {[0, 1, 2].map((i) => (
-                <span key={i} className="h-5 w-5 rounded-full bg-gradient-to-br from-primary-400 to-accent-500 ring-2 ring-white" />
-              ))}
-            </span>
-            Dipercaya 120.000+ pasien
-            <span className="flex items-center gap-0.5 text-warning">
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <span className="font-semibold text-ink-800">4.9</span>
-            </span>
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-6 text-4xl font-extrabold leading-[1.05] text-ink-900 sm:text-5xl lg:text-6xl"
-          >
-            Perawatan kesehatan{" "}
-            <span className="text-gradient">berstandar global</span>{" "}
-            untuk keluarga Indonesia
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-            className="mt-5 max-w-xl text-lg leading-relaxed text-ink-500"
-          >
-            Dari konsultasi, vaksinasi, hingga medical check-up — semua dalam satu klinik
-            dengan dokter berpengalaman dan teknologi terkini.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.6, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
             className="mt-8 flex flex-wrap gap-3"
           >
-            <Button href="/kontak" size="lg">
-              Buat Janji Sekarang
-              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+            <Button
+              href="/kontak"
+              size="lg"
+              className="hover:-translate-y-0.5 hover:shadow-lift transition-all duration-300 ease-out"
+            >
+              Buat Janji Temu
+              <ArrowRight className="h-4.5 w-4.5 transition-transform group-hover:translate-x-1" />
             </Button>
-            <Button href="/layanan" variant="outline" size="lg">
+            <Button href="#layanan" variant="outline" size="lg">
               Lihat Layanan
             </Button>
           </motion.div>
 
+          {/* Trust strip details */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.7, delay: 0.3 }}
-            className="mt-10 flex flex-wrap gap-x-8 gap-y-4"
+            transition={{ duration: 0.6, delay: 0.38 }}
+            className="mt-10 pt-8 border-t border-ink-100 flex flex-col sm:flex-row sm:items-center gap-x-8 gap-y-4"
           >
-            {[
-              { icon: ShieldCheck, label: "Layanan cashless asuransi" },
-              { icon: Clock, label: "Buka 7 hari seminggu" },
-              { icon: HeartPulse, label: "Dokter & spesialis lengkap" },
-            ].map(({ icon: I, label }) => (
-              <div key={label} className="flex items-center gap-2 text-sm font-medium text-ink-600">
-                <I className="h-5 w-5 text-primary-500" />
-                {label}
-              </div>
-            ))}
+            <div className="flex items-center gap-2 text-xs font-semibold text-ink-600">
+              <Clock className="h-4 w-4 text-primary-500 shrink-0" />
+              <span>Buka Setiap Hari (08.00 - 20.00 WIB)</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-ink-600">
+              <ShieldCheck className="h-4 w-4 text-primary-500 shrink-0" />
+              <span>Menerima 30+ Mitra Asuransi</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-650">
+              <span className="flex items-center text-warning shrink-0">
+                <Star className="h-3.5 w-3.5 fill-current" />
+              </span>
+              <span className="font-bold text-ink-850">4.9 / 5.0</span>
+              <span className="text-ink-400 font-normal">dari 12K+ pasien</span>
+            </div>
           </motion.div>
         </div>
 
-        {/* Right: promo card carousel */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 24 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-          className="relative"
-          onMouseEnter={() => setPaused(true)}
-          onMouseLeave={() => setPaused(false)}
-        >
-          {/* Floating stat cards */}
-          <motion.div
-            className="animate-float absolute -left-4 top-8 z-20 hidden rounded-2xl bg-white p-3.5 shadow-lift ring-1 ring-ink-100 sm:flex sm:items-center sm:gap-3"
-          >
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-accent-50 text-accent-600">
-              <Stethoscope className="h-5 w-5" />
-            </span>
-            <div className="text-sm">
-              <p className="font-bold text-ink-900">45+ Dokter</p>
-              <p className="text-xs text-ink-500">Umum & spesialis</p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            className="animate-float absolute -right-4 bottom-10 z-20 hidden rounded-2xl bg-white p-3.5 shadow-lift ring-1 ring-ink-100 sm:flex sm:items-center sm:gap-3 [animation-delay:-3s]"
-          >
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
-              <HeartPulse className="h-5 w-5" />
-            </span>
-            <div className="text-sm">
-              <p className="font-bold text-ink-900">98% Puas</p>
-              <p className="text-xs text-ink-500">Kepuasan pasien</p>
-            </div>
-          </motion.div>
-
-          <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] bg-gradient-to-br from-primary-600 via-primary-700 to-accent-700 p-1 shadow-lift sm:aspect-[5/5]">
-            <div className="relative h-full w-full overflow-hidden rounded-[1.85rem] bg-dark">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={slide.id}
-                  initial={{ opacity: 0, x: 40 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -40 }}
-                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                  className="absolute inset-0"
-                >
-                  {/* Real photo background (painted first = behind) */}
-                  <Image
-                    src={slide.image}
-                    alt={slide.eyebrow}
-                    fill
-                    priority={slide.id === slides[0].id}
-                    sizes="(max-width: 1024px) 90vw, 45vw"
-                    className="object-cover"
-                  />
-                  {/* Readability overlays */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-dark via-dark/85 to-dark/45" />
-                  <div className="bg-dots absolute inset-0 opacity-20" />
-
-                  {/* Content (above the image + overlays) */}
-                  <div className="relative z-10 flex h-full flex-col justify-between p-7 sm:p-9">
-                    <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-white/15 backdrop-blur-sm">
-                        {slide.badge}
-                      </span>
-                      <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-accent-300 ring-1 ring-white/15 backdrop-blur-sm">
-                        <Icon className="h-6 w-6" />
-                      </span>
-                    </div>
-
-                    <div>
-                      <p className="text-sm font-semibold uppercase tracking-wider text-accent-300">
-                        {slide.eyebrow}
-                      </p>
-                      <h2 className="mt-3 text-2xl font-bold leading-tight text-white sm:text-3xl">
-                        {slide.title}
-                      </h2>
-                      <p className="mt-3 text-sm leading-relaxed text-primary-100/90">
-                        {slide.subtitle}
-                      </p>
-                      <Button href={slide.href} variant="white" size="sm" className="mt-6">
-                        {slide.cta}
-                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                      </Button>
-                    </div>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          </div>
-
-          {/* Dots */}
-          <div className="mt-5 flex items-center justify-center gap-2">
-            {slides.map((s, i) => (
-              <button
-                key={s.id}
-                onClick={() => setIndex(i)}
-                aria-label={`Slide ${i + 1}`}
-                className="group relative h-2 rounded-full transition-all"
-                style={{ width: i === index ? 32 : 8 }}
-              >
-                <span
-                  className={`block h-full w-full rounded-full transition-colors ${
-                    i === index ? "bg-primary-600" : "bg-ink-200 group-hover:bg-ink-300"
-                  }`}
-                />
-              </button>
-            ))}
-          </div>
-        </motion.div>
       </Container>
     </section>
   );

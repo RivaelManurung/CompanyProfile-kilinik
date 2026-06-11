@@ -28,6 +28,7 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+	r.Use(bodyLimit())
 	r.Use(mutationOriginGuard(cfg))
 
 	h := handlers.New(db, cfg)
@@ -65,6 +66,7 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 			admin.GET("/audit-logs", auth.RequirePermission(auth.PermissionAuditRead), h.ListAuditLogs)
 
 			admin.GET("/appointments", auth.RequirePermission(auth.PermissionAppointmentsRead), h.ListAppointments)
+			admin.POST("/appointments", auth.RequirePermission(auth.PermissionAppointmentsWrite), h.AdminCreateAppointment)
 			admin.GET("/appointments/:id", auth.RequirePermission(auth.PermissionAppointmentsRead), h.GetAppointment)
 			admin.PATCH("/appointments/:id", auth.RequirePermission(auth.PermissionAppointmentsWrite), h.UpdateAppointment)
 			admin.DELETE("/appointments/:id", auth.RequirePermission(auth.PermissionAppointmentsDelete), h.DeleteAppointment)
@@ -74,6 +76,14 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 			registerCRUD(admin, "services", auth.PermissionClinicRead, auth.PermissionClinicWrite, auth.PermissionClinicDelete, h.ListServices, h.GetService, h.CreateService, h.UpdateService, h.DeleteService)
 			registerCRUD(admin, "locations", auth.PermissionClinicRead, auth.PermissionClinicWrite, auth.PermissionClinicDelete, h.ListLocations, h.GetLocation, h.CreateLocation, h.UpdateLocation, h.DeleteLocation)
 			registerCRUD(admin, "promotions", auth.PermissionContentRead, auth.PermissionContentWrite, auth.PermissionContentDelete, h.ListPromotions, h.GetPromotion, h.CreatePromotion, h.UpdatePromotion, h.DeletePromotion)
+
+			// Admin user & role management (system administration)
+			admin.GET("/users", auth.RequirePermission(auth.PermissionSystemRead), h.ListUsers)
+			admin.POST("/users", auth.RequirePermission(auth.PermissionSystemWrite), h.CreateUser)
+			admin.GET("/users/:id", auth.RequirePermission(auth.PermissionSystemRead), h.GetUser)
+			admin.PUT("/users/:id", auth.RequirePermission(auth.PermissionSystemWrite), h.UpdateUser)
+			admin.DELETE("/users/:id", auth.RequirePermission(auth.PermissionSystemWrite), h.DeleteUser)
+			admin.GET("/roles", auth.RequirePermission(auth.PermissionSystemRead), h.ListRoles)
 		}
 	}
 

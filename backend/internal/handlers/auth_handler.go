@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"sehatnusantara/api/internal/auth"
 	"sehatnusantara/api/internal/models"
@@ -33,12 +34,21 @@ func (h *Handler) Login(c *gin.Context) {
 		fail(c, http.StatusUnauthorized, "INVALID_CREDENTIALS", "Email atau kata sandi salah")
 		return
 	}
+	if !admin.Active {
+		h.audit(c, "login_blocked", "auth", stringID(admin.ID))
+		fail(c, http.StatusForbidden, "ACCOUNT_DISABLED", "Akun Anda dinonaktifkan. Hubungi administrator.")
+		return
+	}
 
 	token, err := auth.GenerateToken(h.Cfg.JWTSecret, admin.ID, admin.Email, admin.Role)
 	if err != nil {
 		fail(c, http.StatusInternalServerError, "TOKEN_ERROR", "Gagal membuat sesi")
 		return
 	}
+
+	now := time.Now()
+	h.DB.Model(&admin).UpdateColumn("last_login_at", now)
+	admin.LastLoginAt = &now
 
 	auth.SetCookie(c, token, h.Cfg.IsProd())
 	c.Set("adminID", stringID(admin.ID))

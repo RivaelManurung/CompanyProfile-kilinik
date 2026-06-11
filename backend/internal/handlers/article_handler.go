@@ -17,6 +17,37 @@ type articleRequest struct {
 	Content   string `json:"content" binding:"omitempty"`
 	ReadMins  int    `json:"readMins"`
 	Published *bool  `json:"published"`
+	// CMS metadata
+	Status         string   `json:"status" binding:"omitempty,oneof=draft published scheduled archived"`
+	ScheduledAt    string   `json:"scheduledAt" binding:"omitempty,max=40"`
+	CoverImage     string   `json:"coverImage" binding:"omitempty,max=500"`
+	Tags           []string `json:"tags"`
+	Author         string   `json:"author" binding:"omitempty,max=120"`
+	Featured       *bool    `json:"featured"`
+	SeoTitle       string   `json:"seoTitle" binding:"omitempty,max=200"`
+	SeoDescription string   `json:"seoDescription" binding:"omitempty,max=320"`
+	OgImage        string   `json:"ogImage" binding:"omitempty,max=500"`
+	CanonicalURL   string   `json:"canonicalUrl" binding:"omitempty,max=500"`
+	FocusKeyword   string   `json:"focusKeyword" binding:"omitempty,max=120"`
+}
+
+// applyArticleMeta copies CMS metadata from a request onto an article model and
+// keeps the legacy `published` boolean consistent with the lifecycle status.
+func applyArticleMeta(a *models.Article, req *articleRequest) {
+	if req.Status != "" {
+		a.Status = req.Status
+		a.Published = req.Status == "published"
+	}
+	a.ScheduledAt = req.ScheduledAt
+	a.CoverImage = req.CoverImage
+	a.Tags = req.Tags
+	a.Author = req.Author
+	a.Featured = boolValue(req.Featured, a.Featured)
+	a.SeoTitle = req.SeoTitle
+	a.SeoDescription = req.SeoDescription
+	a.OgImage = req.OgImage
+	a.CanonicalURL = req.CanonicalURL
+	a.FocusKeyword = req.FocusKeyword
 }
 
 func (h *Handler) ListArticles(c *gin.Context) {
@@ -26,11 +57,11 @@ func (h *Handler) ListArticles(c *gin.Context) {
 	}
 	var items []models.Article
 	q := h.DB.Model(&models.Article{})
-	if params.Status == "published" {
-		q = q.Where("published = ?", true)
-	}
-	if params.Status == "draft" {
-		q = q.Where("published = ?", false)
+	switch params.Status {
+	case "published", "draft", "scheduled", "archived":
+		q = q.Where("status = ?", params.Status)
+	case "featured":
+		q = q.Where("featured = ?", true)
 	}
 	if params.Q != "" {
 		like := "%" + params.Q + "%"
@@ -77,8 +108,9 @@ func (h *Handler) CreateArticle(c *gin.Context) {
 	a := models.Article{
 		Slug: slug, Title: req.Title, Excerpt: req.Excerpt, Category: req.Category,
 		Content: req.Content, ReadMins: readMins, Published: boolValue(req.Published, true),
-		PublishedAt: time.Now(),
+		PublishedAt: time.Now(), Status: "published",
 	}
+	applyArticleMeta(&a, &req)
 	if err := h.DB.Create(&a).Error; err != nil {
 		fail(c, http.StatusConflict, "CREATE_FAILED", "Gagal membuat (slug mungkin sudah dipakai)")
 		return
@@ -106,6 +138,7 @@ func (h *Handler) UpdateArticle(c *gin.Context) {
 		a.ReadMins = req.ReadMins
 	}
 	a.Published = boolValue(req.Published, a.Published)
+	applyArticleMeta(&a, &req)
 	if req.Slug != "" {
 		a.Slug = req.Slug
 	}

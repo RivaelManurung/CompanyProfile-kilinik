@@ -1,4 +1,5 @@
 import type {
+  Admin,
   AdminSession,
   Appointment,
   Article,
@@ -8,6 +9,7 @@ import type {
   Doctor,
   ListParams,
   Promotion,
+  RolesResponse,
   Service,
   StatsResponse,
 } from "./types";
@@ -64,6 +66,9 @@ async function request<T>(path: string, options: RequestInit & { timeoutMs?: num
     if (err instanceof DOMException && err.name === "AbortError") {
       throw new ApiError(408, "TIMEOUT", "Permintaan terlalu lama. Coba lagi.");
     }
+    if (err instanceof TypeError) {
+      throw new ApiError(0, "NETWORK_ERROR", "Tidak bisa terhubung ke backend. Pastikan server API sedang berjalan.");
+    }
     throw err;
   } finally {
     clearTimeout(timeout);
@@ -88,10 +93,17 @@ export const statsApi = {
 };
 
 // ---- Appointments ----
+type AppointmentInput = Partial<Appointment> & Record<string, unknown>;
 export const appointmentsApi = {
   list: (params: { status?: string; q?: string; page?: number; limit?: number } = {}) => {
     return request<ListEnvelope<Appointment>>(`/admin/appointments?${qs(params)}`);
   },
+  get: (id: number) => request<Envelope<Appointment>>(`/admin/appointments/${id}`).then((r) => r.data),
+  create: (body: AppointmentInput) =>
+    request<Envelope<Appointment>>("/admin/appointments", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }).then((r) => r.data),
   update: (id: number, body: Partial<Appointment>) =>
     request<Envelope<Appointment>>(`/admin/appointments/${id}`, {
       method: "PATCH",
@@ -118,7 +130,13 @@ export const articlesApi = resource<Article, Partial<Article>>("articles");
 export const servicesApi = resource<Service, Partial<Service>>("services");
 export const locationsApi = resource<ClinicLocation, Partial<ClinicLocation>>("locations");
 export const promotionsApi = resource<Promotion, Partial<Promotion>>("promotions");
+export const usersApi = resource<Admin, Record<string, unknown>>("users");
 
 export const auditApi = {
   list: (params: ListParams = {}) => request<ListEnvelope<AuditLog>>(`/admin/audit-logs?${qs(params)}`),
+};
+
+// ---- Roles (read-only RBAC matrix) ----
+export const rolesApi = {
+  list: () => request<Envelope<RolesResponse>>("/admin/roles").then((r) => r.data),
 };

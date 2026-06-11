@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	stdlog "log"
 	"net/http"
 
 	"sehatnusantara/api/internal/models"
@@ -9,7 +10,7 @@ import (
 )
 
 func (h *Handler) audit(c *gin.Context, action, resource, resourceID string) {
-	log := models.AuditLog{
+	entry := models.AuditLog{
 		AdminID:    c.GetString("adminID"),
 		AdminEmail: c.GetString("adminEmail"),
 		Action:     action,
@@ -18,7 +19,11 @@ func (h *Handler) audit(c *gin.Context, action, resource, resourceID string) {
 		IP:         c.ClientIP(),
 		UserAgent:  c.Request.UserAgent(),
 	}
-	_ = h.DB.Create(&log).Error
+	// Audit writes must never block the request, but failures should be observable
+	// rather than silently dropped.
+	if err := h.DB.Create(&entry).Error; err != nil {
+		stdlog.Printf("audit: failed to record %s on %s/%s: %v", action, resource, resourceID, err)
+	}
 }
 
 func (h *Handler) ListAuditLogs(c *gin.Context) {

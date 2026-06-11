@@ -16,6 +16,47 @@ type promotionRequest struct {
 	OldPrice string `json:"oldPrice" binding:"omitempty,max=60"`
 	Desc     string `json:"desc" binding:"omitempty,max=600"`
 	Active   *bool  `json:"active"`
+	// Campaign metadata
+	Status          string `json:"status" binding:"omitempty,oneof=draft scheduled active expired hidden"`
+	CampaignType    string `json:"campaignType" binding:"omitempty,oneof=discount bundle seasonal new_patient wellness"`
+	StartDate       string `json:"startDate" binding:"omitempty,max=40"`
+	EndDate         string `json:"endDate" binding:"omitempty,max=40"`
+	CoverImage      string `json:"coverImage" binding:"omitempty,max=500"`
+	Terms           string `json:"terms" binding:"omitempty,max=2000"`
+	FullDescription string `json:"fullDescription" binding:"omitempty,max=4000"`
+	TargetAudience  string `json:"targetAudience" binding:"omitempty,max=120"`
+	AccentColor     string `json:"accentColor" binding:"omitempty,max=60"`
+	Currency        string `json:"currency" binding:"omitempty,max=10"`
+	PriceNote       string `json:"priceNote" binding:"omitempty,max=120"`
+	Featured        *bool  `json:"featured"`
+	DisplayOrder    *int   `json:"displayOrder"`
+	MaxClaims       *int   `json:"maxClaims"`
+}
+
+// applyPromotionMeta copies campaign metadata onto a promotion model and keeps
+// the legacy `active` boolean consistent with the lifecycle status.
+func applyPromotionMeta(p *models.Promotion, req *promotionRequest) {
+	if req.Status != "" {
+		p.Status = req.Status
+		p.Active = req.Status == "active"
+	}
+	p.CampaignType = req.CampaignType
+	p.StartDate = req.StartDate
+	p.EndDate = req.EndDate
+	p.CoverImage = req.CoverImage
+	p.Terms = req.Terms
+	p.FullDescription = req.FullDescription
+	p.TargetAudience = req.TargetAudience
+	p.AccentColor = req.AccentColor
+	p.Currency = req.Currency
+	p.PriceNote = req.PriceNote
+	p.Featured = boolValue(req.Featured, p.Featured)
+	if req.DisplayOrder != nil {
+		p.DisplayOrder = *req.DisplayOrder
+	}
+	if req.MaxClaims != nil {
+		p.MaxClaims = *req.MaxClaims
+	}
 }
 
 func (h *Handler) ListPromotions(c *gin.Context) {
@@ -25,10 +66,10 @@ func (h *Handler) ListPromotions(c *gin.Context) {
 	}
 	var items []models.Promotion
 	q := h.DB.Model(&models.Promotion{})
-	if params.Status == "active" {
-		q = q.Where("active = ?", true)
-	}
-	if params.Status == "inactive" {
+	switch params.Status {
+	case "draft", "scheduled", "active", "expired", "hidden":
+		q = q.Where("status = ?", params.Status)
+	case "inactive":
 		q = q.Where("active = ?", false)
 	}
 	if params.Q != "" {
@@ -71,7 +112,9 @@ func (h *Handler) CreatePromotion(c *gin.Context) {
 	p := models.Promotion{
 		Slug: slug, Title: req.Title, Tag: req.Tag, Price: req.Price,
 		OldPrice: req.OldPrice, Desc: req.Desc, Active: boolValue(req.Active, true),
+		Status: "draft",
 	}
+	applyPromotionMeta(&p, &req)
 	if err := h.DB.Create(&p).Error; err != nil {
 		fail(c, http.StatusConflict, "CREATE_FAILED", "Gagal membuat (slug mungkin sudah dipakai)")
 		return
@@ -97,6 +140,7 @@ func (h *Handler) UpdatePromotion(c *gin.Context) {
 	p.OldPrice = req.OldPrice
 	p.Desc = req.Desc
 	p.Active = boolValue(req.Active, p.Active)
+	applyPromotionMeta(&p, &req)
 	if req.Slug != "" {
 		p.Slug = req.Slug
 	}

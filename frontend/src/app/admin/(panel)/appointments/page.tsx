@@ -2,41 +2,21 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
-import { Eye, MoreHorizontal, Trash2 } from "lucide-react";
+import { Eye, Trash2, ClipboardList, Clock, CheckCircle2, XCircle, ListChecks } from "lucide-react";
 import { AdminDataGrid } from "@/components/admin/AdminDataGrid";
-import { StatusBadge } from "@/components/admin/StatusBadge";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { PageHeader } from "@/components/admin/page-header";
+import { SummaryCard } from "@/components/admin/summary-card";
+import { ActionMenu } from "@/components/admin/action-menu";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { useAdminSession } from "@/components/admin/AdminShell";
 import { appointmentsApi, ApiError } from "@/lib/admin/api";
 import { can, permissions } from "@/lib/admin/permissions";
 import type { Appointment, AppointmentStatus, ListMeta, ListParams } from "@/lib/admin/types";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 const filters = [
   { value: "", label: "Semua" },
@@ -47,7 +27,8 @@ const filters = [
 ];
 
 const statusOptions: AppointmentStatus[] = ["pending", "confirmed", "done", "cancelled"];
-const statusText: Record<AppointmentStatus, string> = {
+
+const statusLabels: Record<AppointmentStatus, string> = {
   pending: "Menunggu",
   confirmed: "Dikonfirmasi",
   done: "Selesai",
@@ -58,11 +39,8 @@ const emptyMeta: ListMeta = { total: 0, page: 1, limit: 20, totalPages: 1 };
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    day: "numeric", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
   });
 }
 
@@ -79,39 +57,45 @@ function paramsFromUrl(searchParams: URLSearchParams): Required<ListParams> {
 
 export default function AppointmentsPage() {
   const router = useRouter();
+  const session = useAdminSession();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const session = useAdminSession();
   const params = useMemo(() => paramsFromUrl(searchParams), [searchParams]);
-  const canWrite = can(session, permissions.appointmentsWrite);
-  const canRemove = can(session, permissions.appointmentsDelete);
-
   const [rows, setRows] = useState<Appointment[]>([]);
   const [meta, setMeta] = useState<ListMeta>(emptyMeta);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [detail, setDetail] = useState<Appointment | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Appointment | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState<{ appointment: Appointment; next: AppointmentStatus } | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const canWrite = can(session, permissions.appointmentsWrite);
+  const canRemove = can(session, permissions.appointmentsDelete);
+
+  useEffect(() => {
+    appointmentsApi.list(params)
+      .then((res) => {
+        setRows(res.data);
+        setMeta(res.meta);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err instanceof ApiError ? err.message : "Gagal memuat data");
+        setLoading(false);
+      });
+  }, [params]);
+
+  const load = useCallback(async (showLoader = false) => {
+    if (showLoader) setLoading(true);
     setError(null);
     try {
       const res = await appointmentsApi.list(params);
       setRows(res.data);
       setMeta(res.meta);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Gagal memuat janji temu");
+      setError(err instanceof ApiError ? err.message : "Gagal memuat data");
     } finally {
       setLoading(false);
     }
   }, [params]);
-
-  useEffect(() => {
-    const timeout = setTimeout(load, 250);
-    return () => clearTimeout(timeout);
-  }, [load]);
 
   function updateParams(next: Partial<ListParams>) {
     const sp = new URLSearchParams(searchParams.toString());
@@ -125,27 +109,12 @@ export default function AppointmentsPage() {
   const changeStatus = useCallback(async (appointment: Appointment, next: AppointmentStatus) => {
     try {
       await appointmentsApi.update(appointment.id, { status: next });
-      toast.success(`Status diubah ke "${statusText[next]}"`);
+      toast.success(`Status diubah ke ${statusLabels[next]}`);
       await load();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Gagal memperbarui status");
     }
   }, [load]);
-
-  async function confirmDelete() {
-    if (!deleteTarget) return;
-    setDeleting(true);
-    try {
-      await appointmentsApi.remove(deleteTarget.id);
-      toast.success("Janji temu dihapus");
-      setDeleteTarget(null);
-      await load();
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Gagal menghapus");
-    } finally {
-      setDeleting(false);
-    }
-  }
 
   const columns = useMemo<ColumnDef<Appointment>[]>(
     () => [
@@ -153,16 +122,23 @@ export default function AppointmentsPage() {
         id: "Pasien",
         header: "Pasien",
         cell: ({ row }) => (
-          <div>
-            <p className="font-medium text-foreground">{row.original.name}</p>
-            <p className="text-sm text-muted-foreground">{row.original.phone}</p>
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+              {row.original.name.charAt(0)}
+            </div>
+            <div>
+              <p className="font-medium text-foreground">{row.original.name}</p>
+              <p className="text-xs text-muted-foreground">{row.original.phone}</p>
+            </div>
           </div>
         ),
       },
       {
         id: "Layanan",
         header: "Layanan",
-        cell: ({ row }) => <span className="text-muted-foreground">{row.original.service || "Belum dipilih"}</span>,
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground">{row.original.service || "Belum dipilih"}</span>
+        ),
       },
       {
         id: "Status",
@@ -180,49 +156,64 @@ export default function AppointmentsPage() {
         enableHiding: false,
         cell: ({ row }) => (
           <div className="flex justify-end gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDetail(row.original)} aria-label="Lihat detail janji temu">
-              <Eye className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-8 w-8" asChild aria-label="Lihat detail">
+              <Link href={`/admin/appointments/${row.original.id}`}>
+                <Eye className="h-4 w-4" />
+              </Link>
             </Button>
-            {(canWrite || canRemove) && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Buka aksi janji temu">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {canWrite && (
-                    <>
-                      <DropdownMenuLabel>Ubah status</DropdownMenuLabel>
-                      {statusOptions.map((status) => (
-                        <DropdownMenuItem key={status} disabled={status === row.original.status} onClick={() => changeStatus(row.original, status)}>
-                          {statusText[status]}
-                        </DropdownMenuItem>
-                      ))}
-                    </>
-                  )}
-                  {canWrite && canRemove && <DropdownMenuSeparator />}
-                  {canRemove && (
-                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteTarget(row.original)}>
-                      <Trash2 className="h-4 w-4" />
-                      Hapus
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+            <ActionMenu
+              label="Aksi"
+              actions={[
+                ...(canWrite ? [
+                  ...statusOptions.filter((s) => s !== row.original.status).map((s) => ({
+                    label: `Ubah ke ${statusLabels[s]}`,
+                    onClick: () => setConfirmTarget({ appointment: row.original, next: s }),
+                  })),
+                  "separator" as const,
+                ] : []),
+                ...(canRemove ? [{
+                  label: "Hapus",
+                  icon: <Trash2 className="h-4 w-4" />,
+                  variant: "destructive" as const,
+                  onClick: () => router.push(`/admin/appointments/${row.original.id}/delete`),
+                }] : []),
+              ]}
+            />
           </div>
         ),
       },
     ],
-    [canRemove, canWrite, changeStatus],
+    [canRemove, canWrite, router],
   );
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { pending: 0, confirmed: 0, done: 0, cancelled: 0 };
+    rows.forEach((r) => { counts[r.status] = (counts[r.status] || 0) + 1; });
+    return counts;
+  }, [rows]);
+
   return (
-    <div className="space-y-5">
-      <div>
-        <p className="text-sm font-medium text-muted-foreground">Queue operasional</p>
-        <h2 className="text-2xl font-bold tracking-normal text-foreground">Janji Temu</h2>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Operations"
+        title="Appointments"
+        description="Manage patient bookings, queue status, confirmations, and visit completion."
+        action={
+          <Button asChild>
+            <Link href="/admin/appointments/new">
+              <ClipboardList className="h-4 w-4" />
+              Create Appointment
+            </Link>
+          </Button>
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <SummaryCard icon={<ListChecks className="h-5 w-5" />} label="Total" value={meta.total} />
+        <SummaryCard icon={<Clock className="h-5 w-5" />} label="Menunggu" value={statusCounts.pending || 0} variant="warning" />
+        <SummaryCard icon={<CheckCircle2 className="h-5 w-5" />} label="Dikonfirmasi" value={statusCounts.confirmed || 0} variant="info" />
+        <SummaryCard icon={<CheckCircle2 className="h-5 w-5" />} label="Selesai" value={statusCounts.done || 0} variant="success" />
+        <SummaryCard icon={<XCircle className="h-5 w-5" />} label="Dibatalkan" value={statusCounts.cancelled || 0} variant="danger" />
       </div>
 
       <AdminDataGrid
@@ -232,70 +223,35 @@ export default function AppointmentsPage() {
         loading={loading}
         error={error}
         search={params.q}
-        searchPlaceholder="Cari nama, email, atau telepon..."
+        searchPlaceholder="Cari pasien, telepon, email..."
         filters={filters}
         activeFilter={params.status}
-        emptyTitle="Tidak ada janji temu"
-        emptyDescription="Permintaan konsultasi dari website akan tampil di queue ini."
+        emptyTitle="No appointments found"
+        emptyDescription="Create a new appointment or adjust your filters to see clinic bookings."
         onSearchChange={(q) => updateParams({ q, page: 1 })}
         onFilterChange={(status) => updateParams({ status, page: 1 })}
         onPageChange={(page) => updateParams({ page })}
-        onRefresh={load}
+        onRefresh={() => load(true)}
       />
 
-      <Dialog open={!!detail} onOpenChange={(open) => !open && setDetail(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Detail Janji Temu</DialogTitle>
-            <DialogDescription>Data kontak dan kebutuhan awal pasien.</DialogDescription>
-          </DialogHeader>
-          {detail && (
-            <dl className="space-y-3 text-sm">
-              {[
-                ["Nama", detail.name],
-                ["Telepon", detail.phone],
-                ["Email", detail.email || "-"],
-                ["Layanan", detail.service || "-"],
-                ["Tanggal", fmt(detail.createdAt)],
-              ].map(([key, value]) => (
-                <div key={key} className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">{key}</dt>
-                  <dd className="text-right font-medium text-foreground">{value}</dd>
-                </div>
-              ))}
-              <div className="flex justify-between gap-4">
-                <dt className="text-muted-foreground">Status</dt>
-                <dd>
-                  <StatusBadge status={detail.status} />
-                </dd>
-              </div>
-              {detail.message && (
-                <div className="rounded-md bg-muted p-3">
-                  <dt className="mb-1 text-muted-foreground">Pesan</dt>
-                  <dd className="text-foreground">{detail.message}</dd>
-                </div>
-              )}
-            </dl>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Hapus janji temu?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tindakan ini permanen dan tercatat di audit log. Hapus hanya jika data benar-benar tidak valid.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Batal</AlertDialogCancel>
-            <AlertDialogAction disabled={deleting} onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90">
-              {deleting ? "Menghapus..." : "Hapus"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={!!confirmTarget}
+        onOpenChange={(open) => { if (!open) setConfirmTarget(null); }}
+        title="Konfirmasi Perubahan Status"
+        description={
+          confirmTarget
+            ? `Ubah status janji temu "${confirmTarget.appointment.name}" dari "${statusLabels[confirmTarget.appointment.status]}" menjadi "${statusLabels[confirmTarget.next]}"?`
+            : ""
+        }
+        confirmLabel="Ya, Ubah Status"
+        cancelLabel="Batal"
+        variant={confirmTarget?.next === "cancelled" ? "destructive" : "default"}
+        onConfirm={async () => {
+          if (!confirmTarget) return;
+          await changeStatus(confirmTarget.appointment, confirmTarget.next);
+          setConfirmTarget(null);
+        }}
+      />
     </div>
   );
 }

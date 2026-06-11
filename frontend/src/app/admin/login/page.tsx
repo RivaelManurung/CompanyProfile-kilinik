@@ -134,6 +134,13 @@ function LoginView() {
               )}
             </Button>
           </form>
+
+          {process.env.NODE_ENV !== "production" && (
+            <div className="mt-6 rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground">Akun demo (development)</p>
+              <p className="mt-1">admin@sehatnusantara.id · Admin#12345</p>
+            </div>
+          )}
         </div>
       </section>
     </main>

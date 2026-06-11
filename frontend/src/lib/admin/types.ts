@@ -5,6 +5,10 @@ export interface Admin {
   name: string;
   email: string;
   role: string;
+  phone?: string;
+  avatarUrl?: string;
+  active: boolean;
+  lastLoginAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -12,6 +16,19 @@ export interface Admin {
 export interface AdminSession {
   admin: Admin;
   permissions: string[];
+}
+
+export interface RoleInfo {
+  key: string;
+  label: string;
+  description: string;
+  permissions: string[];
+  userCount: number;
+}
+
+export interface RolesResponse {
+  roles: RoleInfo[];
+  allPermissions: string[];
 }
 
 export type AppointmentStatus = "pending" | "confirmed" | "done" | "cancelled";
@@ -22,6 +39,7 @@ export interface Appointment {
   phone: string;
   email: string;
   service: string;
+  doctor?: string;
   message: string;
   status: AppointmentStatus;
   createdAt: string;
@@ -42,6 +60,8 @@ export interface Doctor {
   updatedAt: string;
 }
 
+export type ArticleStatus = "draft" | "published" | "scheduled" | "archived";
+
 export interface Article {
   id: number;
   slug: string;
@@ -54,6 +74,18 @@ export interface Article {
   publishedAt: string;
   createdAt: string;
   updatedAt: string;
+  // CMS enhancements (backward-compatible)
+  status?: ArticleStatus;
+  scheduledAt?: string;
+  coverImage?: string;
+  tags?: string[];
+  author?: string;
+  featured?: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
+  ogImage?: string;
+  canonicalUrl?: string;
+  focusKeyword?: string;
 }
 
 export interface Service {
@@ -79,6 +111,9 @@ export interface ClinicLocation {
   lng: number;
 }
 
+export type PromotionStatus = "draft" | "scheduled" | "active" | "expired" | "hidden";
+export type CampaignType = "discount" | "bundle" | "seasonal" | "new_patient" | "wellness";
+
 export interface Promotion {
   id: number;
   slug: string;
@@ -88,6 +123,22 @@ export interface Promotion {
   oldPrice: string;
   desc: string;
   active: boolean;
+  // Campaign enhancements (backward-compatible)
+  status?: PromotionStatus;
+  campaignType?: CampaignType;
+  startDate?: string;
+  endDate?: string;
+  coverImage?: string;
+  terms?: string;
+  featured?: boolean;
+  displayOrder?: number;
+  maxClaims?: number;
+  accentColor?: string;
+  currency?: string;
+  priceNote?: string;
+  fullDescription?: string;
+  targetAudience?: string;
+  totalClaims?: number;
 }
 
 export interface StatsResponse {

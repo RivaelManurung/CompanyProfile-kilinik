@@ -11,18 +11,23 @@ export function Eyebrow({
   light?: boolean;
 }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em]",
-        light
-          ? "bg-white/10 text-primary-100 ring-1 ring-white/15"
-          : "bg-primary-50 text-primary-700 ring-1 ring-primary-100",
-        className,
-      )}
-    >
-      <span className={cn("h-1.5 w-1.5 rounded-full", light ? "bg-accent-300" : "bg-accent-500")} />
-      {children}
-    </span>
+    <div className={cn("inline-flex items-center gap-3", className)}>
+      <span
+        className={cn(
+          "h-px w-8 shrink-0",
+          light ? "bg-primary-300/40" : "bg-primary-500/80"
+        )}
+        aria-hidden="true"
+      />
+      <p
+        className={cn(
+          "text-sm font-semibold tracking-wide",
+          light ? "text-primary-100" : "text-primary-700"
+        )}
+      >
+        {children}
+      </p>
+    </div>
   );
 }
 

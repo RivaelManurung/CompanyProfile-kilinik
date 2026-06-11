@@ -12,6 +12,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// maxBodyBytes caps request payloads to defend against memory-exhaustion via
+// oversized bodies. 1 MiB comfortably covers any article/promotion payload.
+const maxBodyBytes = 1 << 20
+
+// bodyLimit rejects request bodies larger than maxBodyBytes.
+func bodyLimit() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.Request.Body != nil {
+			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBodyBytes)
+		}
+		c.Next()
+	}
+}
+
 type rateBucket struct {
 	count int
 	reset time.Time
@@ -20,12 +34,23 @@ type rateBucket struct {
 func rateLimit(limit int, window time.Duration, keyFn func(*gin.Context) string) gin.HandlerFunc {
 	var mu sync.Mutex
 	buckets := map[string]rateBucket{}
+	lastSweep := time.Now()
 
 	return func(c *gin.Context) {
 		now := time.Now()
 		key := keyFn(c)
 
 		mu.Lock()
+		// Periodically evict expired buckets so the map cannot grow unbounded
+		// (prevents a slow memory leak on long-running single-node servers).
+		if now.Sub(lastSweep) > window {
+			for k, v := range buckets {
+				if now.After(v.reset) {
+					delete(buckets, k)
+				}
+			}
+			lastSweep = now
+		}
 		b := buckets[key]
 		if b.reset.IsZero() || now.After(b.reset) {
 			b = rateBucket{count: 0, reset: now.Add(window)}

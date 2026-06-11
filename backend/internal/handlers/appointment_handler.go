@@ -9,20 +9,47 @@ import (
 )
 
 type createAppointmentRequest struct {
-	Name    string `json:"name" binding:"required,min=2,max=120"`
-	Phone   string `json:"phone" binding:"required,min=6,max=30"`
-	Email   string `json:"email" binding:"omitempty,email"`
-	Service string `json:"service" binding:"omitempty,max=120"`
-	Message string `json:"message" binding:"omitempty,max=2000"`
+	Name            string `json:"name" binding:"required,min=2,max=120"`
+	Phone           string `json:"phone" binding:"required,min=6,max=30"`
+	Email           string `json:"email" binding:"omitempty,email"`
+	Service         string `json:"service" binding:"omitempty,max=120"`
+	Doctor          string `json:"doctor" binding:"omitempty,max=120"`
+	PatientType     string `json:"patientType" binding:"omitempty,oneof=new returning"`
+	Source          string `json:"source" binding:"omitempty,oneof=admin website whatsapp phone"`
+	AppointmentDate string `json:"appointmentDate" binding:"omitempty,max=40"`
+	AppointmentTime string `json:"appointmentTime" binding:"omitempty,max=40"`
+	Status          string `json:"status" binding:"omitempty,oneof=pending confirmed done cancelled"`
+	Message         string `json:"message" binding:"omitempty,max=2000"`
 }
 
 type updateAppointmentRequest struct {
-	Status  string `json:"status" binding:"omitempty,oneof=pending confirmed done cancelled"`
-	Name    string `json:"name" binding:"omitempty,min=2,max=120"`
-	Phone   string `json:"phone" binding:"omitempty,min=6,max=30"`
-	Email   string `json:"email" binding:"omitempty,email"`
-	Service string `json:"service" binding:"omitempty,max=120"`
-	Message string `json:"message" binding:"omitempty,max=2000"`
+	Status          string `json:"status" binding:"omitempty,oneof=pending confirmed done cancelled"`
+	Name            string `json:"name" binding:"omitempty,min=2,max=120"`
+	Phone           string `json:"phone" binding:"omitempty,min=6,max=30"`
+	Email           string `json:"email" binding:"omitempty,email"`
+	Service         string `json:"service" binding:"omitempty,max=120"`
+	Doctor          string `json:"doctor" binding:"omitempty,max=120"`
+	AppointmentDate string `json:"appointmentDate" binding:"omitempty,max=40"`
+	AppointmentTime string `json:"appointmentTime" binding:"omitempty,max=40"`
+	Message         string `json:"message" binding:"omitempty,max=2000"`
+}
+
+// buildAppointment maps a create request to a model, applying sensible defaults.
+func buildAppointment(req createAppointmentRequest, defaultSource string) models.Appointment {
+	source := req.Source
+	if source == "" {
+		source = defaultSource
+	}
+	status := req.Status
+	if status == "" {
+		status = "pending"
+	}
+	return models.Appointment{
+		Name: req.Name, Phone: req.Phone, Email: req.Email, Service: req.Service,
+		Doctor: req.Doctor, PatientType: req.PatientType, Source: source,
+		AppointmentDate: req.AppointmentDate, AppointmentTime: req.AppointmentTime,
+		Message: req.Message, Status: status,
+	}
 }
 
 // CreateAppointment is the PUBLIC endpoint used by the website contact form.
@@ -32,14 +59,28 @@ func (h *Handler) CreateAppointment(c *gin.Context) {
 		failValidation(c, err)
 		return
 	}
-	appt := models.Appointment{
-		Name: req.Name, Phone: req.Phone, Email: req.Email,
-		Service: req.Service, Message: req.Message, Status: "pending",
-	}
+	req.Status = "pending" // public submissions always start pending
+	appt := buildAppointment(req, "website")
 	if err := h.DB.Create(&appt).Error; err != nil {
 		fail(c, http.StatusInternalServerError, "DB_ERROR", "Gagal menyimpan permintaan")
 		return
 	}
+	created(c, appt)
+}
+
+// AdminCreateAppointment lets reception staff create an appointment from the dashboard.
+func (h *Handler) AdminCreateAppointment(c *gin.Context) {
+	var req createAppointmentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		failValidation(c, err)
+		return
+	}
+	appt := buildAppointment(req, "admin")
+	if err := h.DB.Create(&appt).Error; err != nil {
+		fail(c, http.StatusInternalServerError, "DB_ERROR", "Gagal menyimpan permintaan")
+		return
+	}
+	h.audit(c, "create", "appointments", stringID(appt.ID))
 	created(c, appt)
 }
 
@@ -114,6 +155,15 @@ func (h *Handler) UpdateAppointment(c *gin.Context) {
 	}
 	if req.Service != "" {
 		updates["service"] = req.Service
+	}
+	if req.Doctor != "" {
+		updates["doctor"] = req.Doctor
+	}
+	if req.AppointmentDate != "" {
+		updates["appointment_date"] = req.AppointmentDate
+	}
+	if req.AppointmentTime != "" {
+		updates["appointment_time"] = req.AppointmentTime
 	}
 	if req.Message != "" {
 		updates["message"] = req.Message
