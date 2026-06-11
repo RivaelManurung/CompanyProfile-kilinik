@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { AdminDataGrid, type GridFilter } from "@/components/admin/AdminDataGrid";
 import { PageHeader } from "@/components/admin/page-header";
 import { ApiError } from "@/lib/admin/api";
@@ -177,6 +178,32 @@ export function CrudManager<T extends { id: number }>({
     return mapped;
   }, [columns, canDelete, canEdit, singular, basePath]);
 
+  const bulkActions = useMemo(() => {
+    const actions = [];
+    if (canDelete) {
+      actions.push({
+        label: "Hapus Terpilih",
+        variant: "destructive" as const,
+        icon: <Trash2 className="h-3.5 w-3.5" />,
+        onClick: async (selectedRows: T[], clearSelection: () => void) => {
+          const confirmed = window.confirm(`Apakah Anda yakin ingin menghapus ${selectedRows.length} data terpilih?`);
+          if (!confirmed) return;
+
+          toast.loading(`Menghapus ${selectedRows.length} data...`, { id: "bulk-delete" });
+          try {
+            await Promise.all(selectedRows.map(row => api.remove(row.id)));
+            toast.success(`Berhasil menghapus ${selectedRows.length} data`, { id: "bulk-delete" });
+            clearSelection();
+            load(true);
+          } catch (err) {
+            toast.error(err instanceof ApiError ? err.message : "Gagal menghapus data", { id: "bulk-delete" });
+          }
+        }
+      });
+    }
+    return actions;
+  }, [canDelete, api, load]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -209,9 +236,12 @@ export function CrudManager<T extends { id: number }>({
         activeFilter={params.status}
         emptyTitle={`Belum ada ${title.toLowerCase()}`}
         emptyDescription={`Tambahkan ${singular.toLowerCase()} pertama atau ubah filter pencarian.`}
+        enableSelection={canDelete}
+        bulkActions={bulkActions}
         onSearchChange={(q) => updateParams({ q, page: 1 })}
         onFilterChange={(status) => updateParams({ status, page: 1 })}
         onPageChange={(page) => updateParams({ page })}
+        onLimitChange={(limit) => updateParams({ limit, page: 1 })}
         onRefresh={() => load(true)}
       />
     </div>

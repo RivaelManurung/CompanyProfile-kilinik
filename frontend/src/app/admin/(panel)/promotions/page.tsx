@@ -4,11 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Package, Tag, Clock, AlertCircle, FileText, Plus, Pencil, Trash2, Search } from "lucide-react";
+import { toast } from "sonner";
 import { useAdminSession } from "@/components/admin/AdminShell";
 import { PageHeader } from "@/components/admin/page-header";
 import { SummaryCard } from "@/components/admin/summary-card";
 import { StatusBadge } from "@/components/admin/status-badge";
-import { AdminDataGrid } from "@/components/admin/AdminDataGrid";
+import { AdminDataGrid, type BulkAction } from "@/components/admin/AdminDataGrid";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { PageSkeleton } from "@/components/admin/loading-state";
 import { AdminImage } from "@/components/admin/admin-image";
@@ -79,11 +80,13 @@ export default function PromotionsPage() {
   const canEdit = can(session, permissions.contentWrite);
   const canDelete = can(session, permissions.contentDelete);
 
+  const limit = Number(searchParams.get("limit") || 20);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const params: ListParams = { page, limit: 20, q: q || undefined };
+      const params: ListParams = { page, limit, q: q || undefined };
       if (status) params.status = status;
       const res = await promotionsApi.list(params);
       setRows(res.data);
@@ -93,7 +96,7 @@ export default function PromotionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, q, status]);
+  }, [page, q, status, limit]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
@@ -248,6 +251,74 @@ export default function PromotionsPage() {
     return cols;
   }, [canEdit, canDelete]);
 
+  const bulkActions = useMemo<BulkAction<Promotion>[]>(() => {
+    const actions = [];
+    if (canEdit) {
+      actions.push({
+        label: "Aktifkan Terpilih",
+        variant: "default" as const,
+        icon: <Tag className="h-3.5 w-3.5" />,
+        onClick: async (selected: Promotion[], clear: () => void) => {
+          toast.loading(`Mengaktifkan ${selected.length} promosi...`, { id: "bulk-promotion" });
+          try {
+            await Promise.all(selected.map(item => promotionsApi.update(item.id, {
+              active: true,
+              status: "active",
+            })));
+            toast.success(`Berhasil mengaktifkan ${selected.length} promosi`, { id: "bulk-promotion" });
+            clear();
+            await load();
+          } catch (err) {
+            toast.error("Gagal mengaktifkan beberapa promosi", { id: "bulk-promotion" });
+          }
+        }
+      });
+
+      actions.push({
+        label: "Nonaktifkan Terpilih",
+        variant: "secondary" as const,
+        icon: <Clock className="h-3.5 w-3.5" />,
+        onClick: async (selected: Promotion[], clear: () => void) => {
+          toast.loading(`Menonaktifkan ${selected.length} promosi...`, { id: "bulk-promotion" });
+          try {
+            await Promise.all(selected.map(item => promotionsApi.update(item.id, {
+              active: false,
+              status: "draft",
+            })));
+            toast.success(`Berhasil menonaktifkan ${selected.length} promosi`, { id: "bulk-promotion" });
+            clear();
+            await load();
+          } catch (err) {
+            toast.error("Gagal menonaktifkan beberapa promosi", { id: "bulk-promotion" });
+          }
+        }
+      });
+    }
+
+    if (canDelete) {
+      actions.push({
+        label: "Hapus Terpilih",
+        variant: "destructive" as const,
+        icon: <Trash2 className="h-3.5 w-3.5" />,
+        onClick: async (selected: Promotion[], clear: () => void) => {
+          const confirmed = window.confirm(`Apakah Anda yakin ingin menghapus ${selected.length} promosi terpilih?`);
+          if (!confirmed) return;
+
+          toast.loading(`Menghapus ${selected.length} promosi...`, { id: "bulk-delete" });
+          try {
+            await Promise.all(selected.map(item => promotionsApi.remove(item.id)));
+            toast.success(`Berhasil menghapus ${selected.length} promosi`, { id: "bulk-delete" });
+            clear();
+            await load();
+          } catch (err) {
+            toast.error("Gagal menghapus beberapa promosi", { id: "bulk-delete" });
+          }
+        }
+      });
+    }
+    return actions;
+  }, [canEdit, canDelete, load]);
+
   if (loading && rows.length === 0) return <PageSkeleton />;
 
   return (
@@ -334,9 +405,12 @@ export default function PromotionsPage() {
         error={error}
         search={q}
         searchPlaceholder="Cari promo..."
+        enableSelection={canEdit || canDelete}
+        bulkActions={bulkActions}
         onSearchChange={(newQ) => updateParams({ q: newQ, page: 1 })}
         onFilterChange={(newStatus) => updateParams({ status: newStatus, page: 1 })}
         onPageChange={(newPage) => updateParams({ page: newPage })}
+        onLimitChange={(newLimit) => updateParams({ limit: newLimit, page: 1 })}
         onRefresh={load}
       />
 

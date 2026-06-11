@@ -10,7 +10,7 @@ import {
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 
-import { AdminDataGrid, type GridFilter } from "@/components/admin/AdminDataGrid";
+import { AdminDataGrid, type GridFilter, type BulkAction } from "@/components/admin/AdminDataGrid";
 import { PageHeader } from "@/components/admin/page-header";
 import { SummaryCard } from "@/components/admin/summary-card";
 import { StatusBadge } from "@/components/admin/status-badge";
@@ -231,6 +231,81 @@ export default function ArticlesPage() {
   ], [session]);
 
   const canCreate = can(session, permissions.contentWrite);
+  const canWrite = can(session, permissions.contentWrite);
+  const canRemove = can(session, permissions.contentDelete);
+
+  const bulkActions = useMemo<BulkAction<Article>[]>(() => {
+    const actions = [];
+    if (canWrite) {
+      actions.push({
+        label: "Terbitkan Terpilih",
+        variant: "default" as const,
+        icon: <CheckCircle className="h-3.5 w-3.5" />,
+        onClick: async (selected: Article[], clear: () => void) => {
+          toast.loading(`Menerbitkan ${selected.length} artikel...`, { id: "bulk-article" });
+          try {
+            await Promise.all(selected.map(item => articlesApi.update(item.id, {
+              published: true,
+              status: "published",
+              publishedAt: new Date().toISOString(),
+            })));
+            toast.success(`Berhasil menerbitkan ${selected.length} artikel`, { id: "bulk-article" });
+            clear();
+            await refresh();
+            setStats(await fetchStats());
+          } catch (err) {
+            toast.error("Gagal menerbitkan beberapa artikel", { id: "bulk-article" });
+          }
+        }
+      });
+
+      actions.push({
+        label: "Arsipkan Terpilih",
+        variant: "secondary" as const,
+        icon: <Archive className="h-3.5 w-3.5" />,
+        onClick: async (selected: Article[], clear: () => void) => {
+          toast.loading(`Mengarsipkan ${selected.length} artikel...`, { id: "bulk-article" });
+          try {
+            await Promise.all(selected.map(item => articlesApi.update(item.id, {
+              published: false,
+              status: "archived",
+              publishedAt: "",
+            })));
+            toast.success(`Berhasil mengarsipkan ${selected.length} artikel`, { id: "bulk-article" });
+            clear();
+            await refresh();
+            setStats(await fetchStats());
+          } catch (err) {
+            toast.error("Gagal mengarsipkan beberapa artikel", { id: "bulk-article" });
+          }
+        }
+      });
+    }
+
+    if (canRemove) {
+      actions.push({
+        label: "Hapus Terpilih",
+        variant: "destructive" as const,
+        icon: <Trash2 className="h-3.5 w-3.5" />,
+        onClick: async (selected: Article[], clear: () => void) => {
+          const confirmed = window.confirm(`Apakah Anda yakin ingin menghapus ${selected.length} artikel terpilih?`);
+          if (!confirmed) return;
+
+          toast.loading(`Menghapus ${selected.length} artikel...`, { id: "bulk-delete" });
+          try {
+            await Promise.all(selected.map(item => articlesApi.remove(item.id)));
+            toast.success(`Berhasil menghapus ${selected.length} artikel`, { id: "bulk-delete" });
+            clear();
+            await refresh();
+            setStats(await fetchStats());
+          } catch (err) {
+            toast.error("Gagal menghapus beberapa artikel", { id: "bulk-delete" });
+          }
+        }
+      });
+    }
+    return actions;
+  }, [canWrite, canRemove, refresh]);
 
   return (
     <div className="space-y-6">
@@ -291,9 +366,12 @@ export default function ArticlesPage() {
         activeFilter={params.status}
         emptyTitle="Belum ada artikel"
         emptyDescription="Tulis artikel pertama Anda atau ubah filter pencarian."
+        enableSelection={canWrite || canRemove}
+        bulkActions={bulkActions}
         onSearchChange={(q) => upd({ q, page: 1 })}
         onFilterChange={(status) => upd({ status, page: 1 })}
         onPageChange={(page) => upd({ page })}
+        onLimitChange={(limit) => upd({ limit, page: 1 })}
         onRefresh={refresh}
       />
 

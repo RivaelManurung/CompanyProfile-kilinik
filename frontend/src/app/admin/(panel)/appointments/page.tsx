@@ -6,7 +6,7 @@ import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { Eye, Trash2, ClipboardList, Clock, CheckCircle2, XCircle, ListChecks } from "lucide-react";
-import { AdminDataGrid } from "@/components/admin/AdminDataGrid";
+import { AdminDataGrid, type BulkAction } from "@/components/admin/AdminDataGrid";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { PageHeader } from "@/components/admin/page-header";
 import { SummaryCard } from "@/components/admin/summary-card";
@@ -192,6 +192,68 @@ export default function AppointmentsPage() {
     return counts;
   }, [rows]);
 
+  const bulkActions = useMemo<BulkAction<Appointment>[]>(() => {
+    const actions = [];
+    if (canWrite) {
+      actions.push({
+        label: "Konfirmasi Terpilih",
+        variant: "default" as const,
+        icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+        onClick: async (selected: Appointment[], clear: () => void) => {
+          toast.loading(`Memperbarui status ${selected.length} janji temu...`, { id: "bulk-update" });
+          try {
+            await Promise.all(selected.map(item => appointmentsApi.update(item.id, { status: "confirmed" })));
+            toast.success(`Berhasil mengonfirmasi ${selected.length} janji temu`, { id: "bulk-update" });
+            clear();
+            await load();
+          } catch (err) {
+            toast.error("Gagal memperbarui status beberapa janji temu", { id: "bulk-update" });
+          }
+        }
+      });
+
+      actions.push({
+        label: "Selesaikan Terpilih",
+        variant: "secondary" as const,
+        icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+        onClick: async (selected: Appointment[], clear: () => void) => {
+          toast.loading(`Memperbarui status ${selected.length} janji temu...`, { id: "bulk-update" });
+          try {
+            await Promise.all(selected.map(item => appointmentsApi.update(item.id, { status: "done" })));
+            toast.success(`Berhasil menyelesaikan ${selected.length} janji temu`, { id: "bulk-update" });
+            clear();
+            await load();
+          } catch (err) {
+            toast.error("Gagal memperbarui status beberapa janji temu", { id: "bulk-update" });
+          }
+        }
+      });
+    }
+
+    if (canRemove) {
+      actions.push({
+        label: "Hapus Terpilih",
+        variant: "destructive" as const,
+        icon: <Trash2 className="h-3.5 w-3.5" />,
+        onClick: async (selected: Appointment[], clear: () => void) => {
+          const confirmed = window.confirm(`Apakah Anda yakin ingin menghapus ${selected.length} janji temu terpilih?`);
+          if (!confirmed) return;
+
+          toast.loading(`Menghapus ${selected.length} janji temu...`, { id: "bulk-delete" });
+          try {
+            await Promise.all(selected.map(item => appointmentsApi.remove(item.id)));
+            toast.success(`Berhasil menghapus ${selected.length} janji temu`, { id: "bulk-delete" });
+            clear();
+            await load();
+          } catch (err) {
+            toast.error("Gagal menghapus beberapa janji temu", { id: "bulk-delete" });
+          }
+        }
+      });
+    }
+    return actions;
+  }, [canWrite, canRemove, load]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -228,9 +290,12 @@ export default function AppointmentsPage() {
         activeFilter={params.status}
         emptyTitle="No appointments found"
         emptyDescription="Create a new appointment or adjust your filters to see clinic bookings."
+        enableSelection={canWrite || canRemove}
+        bulkActions={bulkActions}
         onSearchChange={(q) => updateParams({ q, page: 1 })}
         onFilterChange={(status) => updateParams({ status, page: 1 })}
         onPageChange={(page) => updateParams({ page })}
+        onLimitChange={(limit) => updateParams({ limit, page: 1 })}
         onRefresh={() => load(true)}
       />
 

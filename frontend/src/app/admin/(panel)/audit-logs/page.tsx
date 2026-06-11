@@ -136,8 +136,10 @@ export default function AuditLogsPage() {
         emptyTitle="No audit activity"
         emptyDescription="System activities will appear here after admins make changes."
         emptyIcon={<Shield className="h-6 w-6" />}
+        enableSelection={false}
         onSearchChange={(q) => updateParams({ q, page: 1 })}
         onPageChange={(page) => updateParams({ page })}
+        onLimitChange={(limit) => updateParams({ limit, page: 1 })}
         onRefresh={() => load(true)}
       />
     </div>
