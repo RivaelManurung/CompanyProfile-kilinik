@@ -3,6 +3,7 @@ import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Stagger, StaggerItem } from "@/components/ui/Reveal";
 import { locations } from "@/lib/data";
+import { ClinicMap } from "./ClinicMap";
 
 export function Locations() {
   return (
@@ -18,14 +19,16 @@ export function Locations() {
           {locations.map((loc) => (
             <StaggerItem key={loc.slug}>
               <div className="group flex h-full flex-col overflow-hidden rounded-3xl border border-ink-100 bg-white transition-all duration-500 hover:-translate-y-1 hover:shadow-lift">
-                <div className="relative h-40 overflow-hidden bg-gradient-to-br from-primary-100 to-accent-100">
-                  <div className="bg-grid absolute inset-0 opacity-60" />
-                  <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-primary-700 shadow-soft backdrop-blur">
+                <div className="relative h-40 overflow-hidden">
+                  <ClinicMap
+                    locations={[loc]}
+                    zoom={15}
+                    className="h-full w-full rounded-none border-none shadow-none"
+                  />
+                  <span className="absolute left-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-primary-700 shadow-soft backdrop-blur">
                     <MapPin className="h-3.5 w-3.5" />
                     {loc.area}
                   </span>
-                  <span className="absolute -right-6 -bottom-6 h-28 w-28 rounded-full bg-white/40 blur-xl transition-transform duration-700 group-hover:scale-150" />
-                  <MapPin className="absolute bottom-4 right-5 h-10 w-10 text-primary-500/40" />
                 </div>
 
                 <div className="flex flex-1 flex-col p-6">
@@ -45,7 +48,7 @@ export function Locations() {
                     </li>
                   </ul>
                   <a
-                    href="https://maps.google.com"
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${loc.position.lat},${loc.position.lng}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary-600 hover:text-primary-700"
