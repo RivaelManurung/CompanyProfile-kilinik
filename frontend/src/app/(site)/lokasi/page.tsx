@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Locations } from "@/components/sections/Locations";
+import { LocationsPaginated } from "@/components/sections/LocationsPaginated";
 import { PageBanner } from "@/components/ui/PageBanner";
 import { CTA } from "@/components/sections/CTA";
 import { Container } from "@/components/ui/Container";
 import { Reveal } from "@/components/ui/Reveal";
 import { ClinicMap } from "@/components/sections/ClinicMap";
+import { getLocations } from "@/lib/public/api";
 
 export const metadata: Metadata = {
   title: "Lokasi Kami",
@@ -12,26 +13,30 @@ export const metadata: Metadata = {
     "Temukan klinik Sehat Nusantara terdekat di Jakarta Pusat dan Jakarta Selatan, lengkap dengan jam operasional dan kontak.",
 };
 
-export default function LokasiPage() {
+export default async function LokasiPage() {
+  const locations = await getLocations();
+  const mapLocations = locations.map((l) => ({
+    ...l,
+    position: { lat: l.lat, lng: l.lng },
+  }));
+
   return (
     <>
       <PageBanner
         crumb="Lokasi Kami"
         eyebrow="Lokasi Kami"
-        title="Selalu dekat dengan Anda di Jakarta"
-        description="Empat lokasi strategis dengan akses mudah, fasilitas modern, dan jam operasional yang fleksibel."
+        title="Selalu dekat dengan Anda"
+        description={`${locations.length} lokasi strategis dengan akses mudah, fasilitas modern, dan jam operasional yang fleksibel.`}
       />
       <section className="pb-4">
         <Container>
           <Reveal>
-            <ClinicMap />
+            <ClinicMap locations={mapLocations} />
           </Reveal>
         </Container>
       </section>
 
-      <div className="-mt-4">
-        <Locations />
-      </div>
+      <LocationsPaginated locations={locations} />
       <CTA />
     </>
   );

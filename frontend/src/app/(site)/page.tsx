@@ -9,20 +9,36 @@ import { Promotions } from "@/components/sections/Promotions";
 import { Testimonials } from "@/components/sections/Testimonials";
 import { Articles } from "@/components/sections/Articles";
 import { CTA } from "@/components/sections/CTA";
+import {
+  getServices,
+  getDoctors,
+  getLocations,
+  getPromotions,
+  getArticles,
+} from "@/lib/public/api";
 
-export default function Home() {
+export default async function Home() {
+  // Live content managed from the admin dashboard, fetched in parallel.
+  const [services, doctors, locations, promotions, articles] = await Promise.all([
+    getServices(),
+    getDoctors(),
+    getLocations(),
+    getPromotions(),
+    getArticles(),
+  ]);
+
   return (
     <>
       <Hero />
       <PartnersMarquee />
-      <Services />
+      <Services services={services} />
       <Stats />
       <WhyChoose />
-      <Doctors />
-      <Promotions />
-      <Locations />
+      <Doctors doctors={doctors} />
+      <Promotions promotions={promotions} />
+      <Locations locations={locations} />
       <Testimonials />
-      <Articles />
+      <Articles articles={articles} />
       <CTA />
     </>
   );

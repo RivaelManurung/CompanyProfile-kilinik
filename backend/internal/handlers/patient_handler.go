@@ -102,6 +102,51 @@ func (h *Handler) PatientMe(c *gin.Context) {
 	ok(c, patientPublic(p))
 }
 
+type patientUpdateRequest struct {
+	Name            string `json:"name" binding:"omitempty,min=2,max=120"`
+	Phone           string `json:"phone" binding:"omitempty,min=6,max=30"`
+	CurrentPassword string `json:"currentPassword" binding:"omitempty"`
+	NewPassword     string `json:"newPassword" binding:"omitempty,min=8,max=72"`
+}
+
+// PatientUpdateProfile updates the authenticated patient's name/phone and,
+// optionally, their password (requires the current password).
+func (h *Handler) PatientUpdateProfile(c *gin.Context) {
+	var p models.PatientUser
+	if err := h.DB.First(&p, auth.PatientID(c)).Error; err != nil {
+		fail(c, http.StatusNotFound, "NOT_FOUND", "Akun tidak ditemukan")
+		return
+	}
+	var req patientUpdateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		failValidation(c, err)
+		return
+	}
+	if req.Name != "" {
+		p.Name = req.Name
+	}
+	if req.Phone != "" {
+		p.Phone = req.Phone
+	}
+	if req.NewPassword != "" {
+		if !auth.CheckPassword(p.PasswordHash, req.CurrentPassword) {
+			fail(c, http.StatusBadRequest, "INVALID_PASSWORD", "Kata sandi saat ini salah")
+			return
+		}
+		hash, err := auth.HashPassword(req.NewPassword)
+		if err != nil {
+			fail(c, http.StatusInternalServerError, "HASH_FAILED", "Gagal memproses kata sandi")
+			return
+		}
+		p.PasswordHash = hash
+	}
+	if err := h.DB.Save(&p).Error; err != nil {
+		fail(c, http.StatusInternalServerError, "UPDATE_FAILED", "Gagal memperbarui profil")
+		return
+	}
+	ok(c, patientPublic(p))
+}
+
 // PatientListAppointments returns the authenticated patient's own bookings.
 func (h *Handler) PatientListAppointments(c *gin.Context) {
 	var items []models.Appointment

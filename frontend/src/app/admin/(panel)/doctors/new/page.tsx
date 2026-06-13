@@ -18,8 +18,8 @@ const fields: Field[] = [
   { name: "experience", label: "Pengalaman", placeholder: "10 tahun", section: "profile" },
   { name: "orderIndex", label: "Urutan", type: "number", hint: "Semakin kecil, semakin awal ditampilkan.", section: "profile" },
   { name: "active", label: "Aktif (tampil di situs)", type: "checkbox", hint: "Nonaktifkan untuk menyembunyikan profil dari situs publik.", section: "profile" },
-  { name: "imageUrl", label: "URL Foto", placeholder: "/doctors/nama.jpg", full: true, section: "media" },
-  { name: "accent", label: "Gradient Accent", placeholder: "from-primary-400 to-primary-600", full: true, section: "media" },
+  { name: "imageUrl", label: "Foto Dokter", type: "image", uploadFolder: "doctors", imageAspect: "square", full: true, section: "media", hint: "Unggah foto profil dokter (rasio 1:1 disarankan)." },
+  { name: "accent", label: "Gradient Accent", placeholder: "from-primary-400 to-primary-600", full: true, section: "media", hint: "Kelas Tailwind gradient untuk kartu publik." },
 ];
 
 function toForm(): FormState {

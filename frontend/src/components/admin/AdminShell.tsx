@@ -121,7 +121,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <SheetContent
             side="left"
             showCloseButton={false}
-            className="w-72 gap-0 border-sidebar-border bg-sidebar p-0 sm:max-w-72 lg:hidden"
+            className="w-72 gap-0 border-0 bg-sidebar p-0 sm:max-w-72 lg:hidden"
           >
             <SheetTitle className="sr-only">Menu admin</SheetTitle>
             <div className="flex justify-end p-2">

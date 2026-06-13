@@ -24,7 +24,7 @@ func parseListParams(c *gin.Context, defaultSort string) listParams {
 	if page < 1 {
 		page = 1
 	}
-	if limit < 1 || limit > 100 {
+	if limit < 1 || limit > 500 {
 		limit = 20
 	}
 

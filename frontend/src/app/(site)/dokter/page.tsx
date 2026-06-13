@@ -4,7 +4,8 @@ import { Container } from "@/components/ui/Container";
 import { Stagger, StaggerItem } from "@/components/ui/Reveal";
 import { DoctorCard } from "@/components/ui/DoctorCard";
 import { CTA } from "@/components/sections/CTA";
-import { doctors, specialties } from "@/lib/data";
+import { specialties } from "@/lib/data";
+import { getDoctors } from "@/lib/public/api";
 
 export const metadata: Metadata = {
   title: "Dokter Kami",
@@ -12,7 +13,8 @@ export const metadata: Metadata = {
     "Temui tim dokter umum dan spesialis berpengalaman di Klinik Sehat Nusantara yang siap mendampingi kesehatan Anda.",
 };
 
-export default function DokterPage() {
+export default async function DokterPage() {
+  const doctors = await getDoctors();
   return (
     <>
       <PageBanner

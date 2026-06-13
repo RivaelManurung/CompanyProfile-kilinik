@@ -24,6 +24,7 @@ export interface RoleInfo {
   description: string;
   permissions: string[];
   userCount: number;
+  editable: boolean;
 }
 
 export interface RolesResponse {
@@ -40,6 +41,11 @@ export interface Appointment {
   email: string;
   service: string;
   doctor?: string;
+  doctorId?: number;
+  appointmentDate?: string;
+  appointmentTime?: string;
+  source?: string;
+  patientType?: string;
   message: string;
   status: AppointmentStatus;
   createdAt: string;

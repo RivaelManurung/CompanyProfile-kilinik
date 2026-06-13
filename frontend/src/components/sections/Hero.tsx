@@ -136,7 +136,7 @@ export function Hero() {
             className="mt-8 flex flex-wrap gap-3"
           >
             <Button
-              href="/kontak"
+              href="/buat-janji"
               size="lg"
               className="hover:-translate-y-0.5 hover:shadow-lift transition-all duration-300 ease-out"
             >

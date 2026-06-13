@@ -11,7 +11,20 @@ import { ApiError } from "@/lib/admin/api";
 import type { ListEnvelope, ListMeta, ListParams } from "@/lib/admin/types";
 import { Button } from "@/components/ui/button";
 
-export type FieldType = "text" | "textarea" | "number" | "checkbox" | "tags" | "url" | "select" | "password";
+export type FieldType =
+  | "text"
+  | "textarea"
+  | "number"
+  | "checkbox"
+  | "tags"
+  | "url"
+  | "select"
+  | "password"
+  | "date"
+  | "datetime"
+  | "map"
+  | "image"
+  | "icon";
 export type FieldValue = string | number | boolean | string[];
 export type FormState = Record<string, FieldValue>;
 
@@ -25,6 +38,12 @@ export interface Field {
   required?: boolean;
   section?: string;
   options?: { value: string; label: string }[];
+  /** For type "map": the form field that stores longitude (this field stores latitude). */
+  lngName?: string;
+  /** For type "image": subfolder the upload is stored under. */
+  uploadFolder?: string;
+  /** For type "image": preview aspect ratio. */
+  imageAspect?: "video" | "square" | "wide";
 }
 
 export interface Column<T> {

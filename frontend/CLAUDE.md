@@ -10,7 +10,7 @@ Tujuannya: seluruh dashboard punya **"shadcn feel"** yang konsisten. Saat membua
 ## 1. Prinsip Utama
 
 1. **Selalu compose dari primitives `@/components/ui/*`** — jangan bikin tombol/card/badge dari `<div>` mentah kalau primitive-nya sudah ada.
-2. **Warna lewat token semantik, bukan hex.** Pakai `bg-primary`, `text-muted-foreground`, `bg-card`, `border`, `bg-sidebar`, dst. Brand = Teal `#0d8b8a` (sama dengan tombol CTA situs publik), didefinisikan sebagai `--primary` di `src/app/globals.css` (blok `:root` shadcn). **Jangan hardcode** warna brand (`bg-[#0d8b8a]`, `bg-teal-*`, dll).
+2. **Warna lewat token semantik, bukan hex.** Pakai `bg-primary`, `text-muted-foreground`, `bg-card`, `border`, `bg-sidebar`, dst. **Brand admin = Dark Green `#06402b`**, didefinisikan sebagai `--primary` di `src/app/globals.css` (blok `:root` shadcn). Situs publik tetap Teal (skala `primary-*` di blok `@theme`) — jadi jangan samakan keduanya. **Jangan hardcode** warna brand (`bg-[#06402b]`, `bg-green-*`, dll); admin selalu pakai `bg-primary`/`text-primary`.
 3. **Jangan lawan default primitive.** `Card` sudah punya `py-6`, `gap-6`, `rounded-xl`, `border`, `shadow-sm`. Jangan tambah `p-6` di `<Card>` — pakai `CardHeader`/`CardContent`/`CardFooter` untuk padding.
 4. **`cn()` dari `@/lib/utils`** untuk menggabung className. Jangan template-string manual.
 5. Ikon **lucide-react**, ukuran via `size-4` / `size-5` (utility `size-*`), bukan `h-4 w-4` untuk konsistensi (boleh, tapi `size-*` lebih disukai di kode baru).
@@ -124,6 +124,13 @@ Setiap halaman admin = `PageHeader` + konten dalam `space-y-6`.
 
 - Pola form: **react-hook-form + Zod** lewat skema di `src/lib/admin/schemas/*.schema.ts`, dirender via `CrudManager`/`FormShell`.
 - Input pakai primitives: `Input`, `Textarea`, `Select`, `Switch`, `Label` dari `@/components/ui/`.
+- **Tanggal** pakai `DatePicker` (`@/components/ui/date-picker.tsx`) — bukan `<input type="date">`. Mode `withTime` untuk tanggal+jam. Di `FormPage` cukup set `type: "date"` atau `type: "datetime"`.
+- **Koordinat peta** pakai `MapPicker` (`@/components/admin/map-picker.tsx`) — peta Leaflet dengan klik/geser pin + pencarian alamat. Di `FormPage` set `type: "map"` pada field latitude dengan `lngName` menunjuk field longitude. Jangan pakai dua `<input type="number">` mentah.
+- **Gambar** pakai `ImageUpload` (`@/components/admin/image-upload.tsx`) — unggah ke `POST /admin/upload`, simpan path `/uploads/...`. Di `FormPage` set `type: "image"` (opsi `uploadFolder`, `imageAspect`). Jangan minta URL gambar. Tampilkan gambar tersimpan via `AdminImage`/`assetUrl` agar path `/uploads` di-resolve ke host backend.
+- **Ikon** pakai `IconPicker` (`@/components/admin/icon-picker.tsx`) — pemilih ikon lucide kurасi. Di `FormPage` set `type: "icon"`. Render ikon tersimpan via `DynamicIcon`. Jangan ketik nama ikon manual.
+- **Dropdown dinamis** (mis. layanan/dokter pada janji temu) pakai `AsyncSelect` (`@/components/admin/async-select.tsx`) + `optionsApi` di `api.ts`. Jangan biarkan field pilihan jadi free-text `<Input>`.
+- **RBAC** kini berbasis DB: matriks izin di halaman `roles` dapat diedit Super Admin (`PUT /admin/roles/:key/permissions`). Default izin di-seed dari `auth.defaultRolePermissions`; super_admin selalu akses penuh.
+- **`FormPage` = satu Card bersih.** Form resource sederhana (service, location, dll) cukup grid field tanpa `sections`. Pakai `sections` hanya bila benar-benar ada beberapa kelompok bermakna (dirender sebagai label inline, bukan kartu terpisah).
 - Error field ditampilkan via mapping dari `ApiError.details` — jangan bikin penanganan error sendiri.
 
 ---

@@ -26,6 +26,38 @@ import { Badge } from "@/components/ui/badge";
 
 const emptyMeta: ListMeta = { total: 0, page: 1, limit: 20, totalPages: 1 };
 
+/**
+ * Build a COMPLETE article update payload from an existing row.
+ *
+ * The backend's PUT /articles/:id requires `title` and overwrites every field
+ * it receives, so a partial payload (e.g. just `{status}`) is rejected (400) and
+ * would also wipe content/cover/SEO. Toggling publish/archive therefore resends
+ * the full record with only the status fields overridden.
+ */
+function articleUpdatePayload(a: Article, overrides: Record<string, unknown>) {
+  return {
+    title: a.title,
+    slug: a.slug,
+    excerpt: a.excerpt ?? "",
+    category: a.category ?? "",
+    content: a.content ?? "",
+    readMins: a.readMins,
+    published: a.published,
+    status: a.status,
+    scheduledAt: a.scheduledAt ?? "",
+    coverImage: a.coverImage ?? "",
+    tags: a.tags ?? [],
+    author: a.author ?? "",
+    featured: a.featured ?? false,
+    seoTitle: a.seoTitle ?? "",
+    seoDescription: a.seoDescription ?? "",
+    ogImage: a.ogImage ?? "",
+    canonicalUrl: a.canonicalUrl ?? "",
+    focusKeyword: a.focusKeyword ?? "",
+    ...overrides,
+  };
+}
+
 function getParams(sp: URLSearchParams): Required<ListParams> {
   return {
     page: Number(sp.get("page") || 1),
@@ -76,6 +108,7 @@ export default function ArticlesPage() {
   const [statsLoading, setStatsLoading] = useState(true);
 
   const [publishTarget, setPublishTarget] = useState<Article | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Article | null>(null);
 
   useEffect(() => {
     fetchStats().then(setStats).finally(() => setStatsLoading(false));
@@ -113,15 +146,30 @@ export default function ArticlesPage() {
     }
   }, [params]);
 
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    try {
+      await articlesApi.remove(deleteTarget.id);
+      toast.success("Artikel dihapus");
+      setDeleteTarget(null);
+      await refresh();
+      setStats(await fetchStats());
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Gagal menghapus artikel");
+    }
+  }
+
   async function handlePublishToggle() {
     if (!publishTarget) return;
     const isPub = publishTarget.status === "published" || publishTarget.published;
     try {
-      await articlesApi.update(publishTarget.id, {
-        published: !isPub,
-        status: isPub ? "archived" : "published",
-        publishedAt: isPub ? null : new Date().toISOString(),
-      } as Record<string, unknown>);
+      await articlesApi.update(
+        publishTarget.id,
+        articleUpdatePayload(publishTarget, {
+          published: !isPub,
+          status: isPub ? "archived" : "published",
+        }),
+      );
       toast.success(isPub ? "Artikel diarsipkan" : "Artikel diterbitkan");
       setPublishTarget(null);
       await refresh();
@@ -218,10 +266,14 @@ export default function ArticlesPage() {
               </>
             )}
             {can(session, permissions.contentDelete) && (
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" asChild>
-                <Link href={`/admin/articles/${a.id}/delete`} aria-label="Hapus">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive hover:text-destructive"
+                onClick={() => setDeleteTarget(a)}
+                aria-label="Hapus"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
               </Button>
             )}
           </div>
@@ -244,15 +296,14 @@ export default function ArticlesPage() {
         onClick: async (selected: Article[], clear: () => void) => {
           toast.loading(`Menerbitkan ${selected.length} artikel...`, { id: "bulk-article" });
           try {
-            await Promise.all(selected.map(item => articlesApi.update(item.id, {
-              published: true,
-              status: "published",
-              publishedAt: new Date().toISOString(),
-            })));
+            await Promise.all(selected.map(item => articlesApi.update(item.id,
+              articleUpdatePayload(item, { published: true, status: "published" }),
+            )));
             toast.success(`Berhasil menerbitkan ${selected.length} artikel`, { id: "bulk-article" });
             clear();
             await refresh();
             setStats(await fetchStats());
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (err) {
             toast.error("Gagal menerbitkan beberapa artikel", { id: "bulk-article" });
           }
@@ -266,15 +317,14 @@ export default function ArticlesPage() {
         onClick: async (selected: Article[], clear: () => void) => {
           toast.loading(`Mengarsipkan ${selected.length} artikel...`, { id: "bulk-article" });
           try {
-            await Promise.all(selected.map(item => articlesApi.update(item.id, {
-              published: false,
-              status: "archived",
-              publishedAt: "",
-            })));
+            await Promise.all(selected.map(item => articlesApi.update(item.id,
+              articleUpdatePayload(item, { published: false, status: "archived" }),
+            )));
             toast.success(`Berhasil mengarsipkan ${selected.length} artikel`, { id: "bulk-article" });
             clear();
             await refresh();
             setStats(await fetchStats());
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (err) {
             toast.error("Gagal mengarsipkan beberapa artikel", { id: "bulk-article" });
           }
@@ -298,6 +348,7 @@ export default function ArticlesPage() {
             clear();
             await refresh();
             setStats(await fetchStats());
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (err) {
             toast.error("Gagal menghapus beberapa artikel", { id: "bulk-delete" });
           }
@@ -387,6 +438,20 @@ export default function ArticlesPage() {
         confirmLabel={(publishTarget?.status === "published" || publishTarget?.published) ? "Ya, Arsipkan" : "Ya, Terbitkan"}
         variant={(publishTarget?.status === "published" || publishTarget?.published) ? "destructive" : "default"}
         onConfirm={handlePublishToggle}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        title="Hapus Artikel?"
+        description={
+          deleteTarget
+            ? `“${deleteTarget.title}” akan dihapus permanen dan tidak dapat dikembalikan.`
+            : ""
+        }
+        confirmLabel="Ya, Hapus"
+        variant="destructive"
+        onConfirm={handleDelete}
       />
     </div>
   );

@@ -73,6 +73,7 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 			}), h.PatientLogin)
 			pat.POST("/logout", h.PatientLogout)
 			pat.GET("/me", patientMW, h.PatientMe)
+			pat.PUT("/me", patientMW, h.PatientUpdateProfile)
 			pat.GET("/appointments", patientMW, h.PatientListAppointments)
 			pat.POST("/appointments", patientMW, h.PatientCreateAppointment)
 		}

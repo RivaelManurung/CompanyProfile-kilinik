@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mail, Phone, MapPin, Camera, Clock, ArrowUpRight } from "lucide-react";
+import { Mail, Phone, MapPin, Camera, Clock } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Logo } from "@/components/ui/Logo";
 import { nav, site } from "@/lib/site";
@@ -13,36 +13,8 @@ export function Footer() {
       <div className="pointer-events-none absolute -bottom-24 left-1/4 h-72 w-72 rounded-full bg-accent-500/10 blur-3xl" />
 
       <Container className="relative">
-        {/* CTA band */}
-        <div className="grid gap-6 border-b border-white/10 py-12 md:grid-cols-[1.5fr_1fr] md:items-center">
-          <div>
-            <h2 className="text-2xl font-bold text-white sm:text-3xl">
-              Siap memulai perjalanan sehat Anda?
-            </h2>
-            <p className="mt-2 max-w-lg text-primary-100/70">
-              Buat janji konsultasi atau hubungi tim kami. Kami siap membantu setiap langkah perawatan Anda.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3 md:justify-end">
-            <Link
-              href="/kontak"
-              className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-primary-700 transition-transform hover:-translate-y-0.5"
-            >
-              Buat Janji <ArrowUpRight className="h-4 w-4" />
-            </Link>
-            <a
-              href={`https://wa.me/${site.whatsapp}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-accent-500 px-6 py-3 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
-            >
-              WhatsApp
-            </a>
-          </div>
-        </div>
-
         {/* Link columns */}
-        <div className="grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-10 pt-16 pb-14 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-5">
             <Logo light />
             <p className="max-w-xs text-sm leading-relaxed text-primary-100/70">

@@ -5,7 +5,8 @@ import { Container } from "@/components/ui/Container";
 import { Stagger, StaggerItem } from "@/components/ui/Reveal";
 import { CTA } from "@/components/sections/CTA";
 import { PartnersMarquee } from "@/components/sections/PartnersMarquee";
-import { services } from "@/lib/data";
+import { ServiceIcon } from "@/lib/public/icons";
+import { getServices } from "@/lib/public/api";
 
 export const metadata: Metadata = {
   title: "Layanan Kami",
@@ -13,7 +14,8 @@ export const metadata: Metadata = {
     "Layanan kesehatan lengkap di Klinik Sehat Nusantara: konsultasi, vaksinasi, farmasi, medical check-up, bedah minor, dan terapi tertarget.",
 };
 
-export default function LayananPage() {
+export default async function LayananPage() {
+  const services = await getServices();
   return (
     <>
       <PageBanner
@@ -27,22 +29,20 @@ export default function LayananPage() {
         <Container>
           <Stagger className="grid gap-6 lg:grid-cols-2">
             {services.map((s, i) => {
-              const Icon = s.icon;
               return (
                 <StaggerItem key={s.slug}>
                   <article
                     id={s.slug}
-                    className="group relative flex h-full flex-col gap-5 overflow-hidden rounded-3xl border border-ink-100 bg-white p-8 shadow-soft transition-all duration-500 hover:border-primary-200 hover:shadow-lift sm:flex-row"
+                    className="group relative flex h-full flex-col gap-5 overflow-hidden rounded-2xl border border-ink-100 bg-white p-8 transition-all duration-500 hover:border-primary-200 hover:shadow-card sm:flex-row"
                   >
-                    <span className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary-50 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                     <div className="relative shrink-0">
-                      <span className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-accent-500 text-white shadow-soft transition-transform duration-500 group-hover:scale-110">
-                        <Icon className="h-8 w-8" />
+                      <span className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-primary-50 text-primary-700 ring-1 ring-primary-100 transition-colors duration-500 group-hover:bg-primary-600 group-hover:text-white group-hover:ring-primary-600">
+                        <ServiceIcon name={s.icon} className="h-7 w-7" />
                       </span>
                     </div>
                     <div className="relative">
-                      <span className="text-xs font-bold uppercase tracking-wider text-primary-400">
-                        0{i + 1}
+                      <span className="font-display text-xs font-bold uppercase tracking-wider text-ink-300">
+                        {String(i + 1).padStart(2, "0")}
                       </span>
                       <h2 className="mt-1 text-xl font-bold text-ink-900">{s.title}</h2>
                       <p className="mt-2 text-sm leading-relaxed text-ink-500">{s.description}</p>

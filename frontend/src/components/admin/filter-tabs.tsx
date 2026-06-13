@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export interface FilterTab {
   value: string;
@@ -18,19 +19,17 @@ export function FilterTabs({ tabs, active, onChange, className }: Props) {
   return (
     <div className={cn("flex flex-wrap gap-1", className)} role="group" aria-label="Filter">
       {tabs.map((tab) => (
-        <button
+        <Button
           key={tab.value}
           type="button"
+          variant={active === tab.value ? "default" : "outline"}
+          size="sm"
+          className="h-7 px-3 text-xs font-medium"
           aria-pressed={active === tab.value}
           onClick={() => onChange(tab.value)}
-          className={
-            active === tab.value
-              ? "rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm"
-              : "rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-          }
         >
           {tab.label}
-        </button>
+        </Button>
       ))}
     </div>
   );

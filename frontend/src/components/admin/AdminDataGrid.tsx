@@ -1,3 +1,4 @@
+"use no memo";
 "use client";
 
 import {
@@ -21,6 +22,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ListMeta } from "@/lib/admin/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -30,6 +32,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -108,7 +117,7 @@ export function AdminDataGrid<TData>({
     if (searchInput === search) return;
     const t = setTimeout(() => onSearchChange(searchInput), 350);
     return () => clearTimeout(t);
-  }, [searchInput, search]);
+  }, [searchInput, search, onSearchChange]);
 
   const safeMeta = useMemo(
     () => ({
@@ -127,28 +136,19 @@ export function AdminDataGrid<TData>({
       id: "select",
       header: ({ table }) => (
         <div className="flex items-center justify-center pl-1">
-          <input
-            type="checkbox"
-            className="h-4 w-4 rounded border-muted/50 text-primary focus:ring-primary bg-background cursor-pointer"
-            checked={table.getIsAllPageRowsSelected()}
-            ref={(el) => {
-              if (el) {
-                el.indeterminate = table.getIsSomePageRowsSelected();
-              }
-            }}
-            onChange={table.getToggleAllPageRowsSelectedHandler()}
+          <Checkbox
+            checked={table.getIsAllPageRowsSelected() ? true : table.getIsSomePageRowsSelected() ? "indeterminate" : false}
+            onCheckedChange={table.getToggleAllPageRowsSelectedHandler()}
             aria-label="Pilih semua"
           />
         </div>
       ),
       cell: ({ row }) => (
         <div className="flex items-center justify-center pl-1">
-          <input
-            type="checkbox"
-            className="h-4 w-4 rounded border-muted/50 text-primary focus:ring-primary bg-background cursor-pointer"
+          <Checkbox
             checked={row.getIsSelected()}
             disabled={!row.getCanSelect()}
-            onChange={row.getToggleSelectedHandler()}
+            onCheckedChange={row.getToggleSelectedHandler()}
             aria-label="Pilih baris"
           />
         </div>
@@ -189,19 +189,17 @@ export function AdminDataGrid<TData>({
           {filters.length > 0 && (
             <div className="flex flex-wrap gap-1" role="group" aria-label="Filter tabel">
               {filters.map((filter) => (
-                <button
+                <Button
                   key={filter.value}
                   type="button"
+                  variant={activeFilter === filter.value ? "default" : "outline"}
+                  size="sm"
+                  className="h-7 px-3 text-xs font-medium"
                   aria-pressed={activeFilter === filter.value}
                   onClick={() => onFilterChange?.(filter.value)}
-                  className={
-                    activeFilter === filter.value
-                      ? "rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm"
-                      : "rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }
                 >
                   {filter.label}
-                </button>
+                </Button>
               ))}
             </div>
           )}
@@ -319,17 +317,21 @@ export function AdminDataGrid<TData>({
           {onLimitChange && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground whitespace-nowrap">Baris per halaman</span>
-              <select
-                value={safeMeta.limit}
-                onChange={(e) => onLimitChange(Number(e.target.value))}
-                className="h-8 rounded-md border border-input bg-background text-xs px-2 py-1 focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer font-medium text-foreground"
+              <Select
+                value={String(safeMeta.limit)}
+                onValueChange={(val) => onLimitChange?.(Number(val))}
               >
-                {[10, 20, 50, 100].map((size) => (
-                  <option key={size} value={size}>
-                    {size}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="h-8 w-20 text-xs font-medium">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[10, 20, 50, 100].map((size) => (
+                    <SelectItem key={size} value={String(size)}>
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 

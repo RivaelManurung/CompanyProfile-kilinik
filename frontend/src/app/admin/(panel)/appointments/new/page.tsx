@@ -20,9 +20,11 @@ import {
 } from "@/components/ui/select";
 import { PageHeader } from "@/components/admin/page-header";
 import { FormShell, FormGrid, FieldGroup, FormActions } from "@/components/admin/form-shell";
+import { DatePicker } from "@/components/ui/date-picker";
+import { AsyncSelect } from "@/components/admin/async-select";
 import { PreviewPanel } from "@/components/admin/preview-panel";
 import { StatusBadge } from "@/components/admin/status-badge";
-import { appointmentsApi, ApiError } from "@/lib/admin/api";
+import { appointmentsApi, optionsApi, ApiError } from "@/lib/admin/api";
 import { cn } from "@/lib/utils";
 
 const appointmentFormSchema = z.object({
@@ -137,18 +139,37 @@ export default function NewAppointmentPage() {
                   <Label htmlFor="service">
                     Layanan <span className="text-destructive ml-0.5">*</span>
                   </Label>
-                  <Input id="service" placeholder="Nama layanan" {...register("service")} aria-invalid={Boolean(errors.service)} />
+                  <AsyncSelect
+                    id="service"
+                    value={watched.service ?? ""}
+                    onChange={(v) => setValue("service", v, { shouldValidate: true })}
+                    loader={optionsApi.services}
+                    placeholder="Pilih layanan"
+                    aria-invalid={Boolean(errors.service)}
+                  />
                   {errors.service && <p className="text-xs font-medium text-destructive">{errors.service.message}</p>}
                 </FieldGroup>
                 <FieldGroup>
                   <Label htmlFor="doctor">Dokter</Label>
-                  <Input id="doctor" placeholder="Nama dokter (opsional)" {...register("doctor")} />
+                  <AsyncSelect
+                    id="doctor"
+                    value={watched.doctor ?? ""}
+                    onChange={(v) => setValue("doctor", v)}
+                    loader={optionsApi.doctors}
+                    placeholder="Pilih dokter (opsional)"
+                    clearable
+                  />
                 </FieldGroup>
                 <FieldGroup>
                   <Label htmlFor="appointmentDate">
                     Tanggal <span className="text-destructive ml-0.5">*</span>
                   </Label>
-                  <Input id="appointmentDate" type="date" {...register("appointmentDate")} aria-invalid={Boolean(errors.appointmentDate)} />
+                  <DatePicker
+                    id="appointmentDate"
+                    value={watched.appointmentDate ?? ""}
+                    onChange={(v) => setValue("appointmentDate", v, { shouldValidate: true })}
+                    aria-invalid={Boolean(errors.appointmentDate)}
+                  />
                   {errors.appointmentDate && <p className="text-xs font-medium text-destructive">{errors.appointmentDate.message}</p>}
                 </FieldGroup>
                 <FieldGroup>

@@ -3,6 +3,7 @@ import { PageBanner } from "@/components/ui/PageBanner";
 import { Container } from "@/components/ui/Container";
 import { ArticleGrid } from "@/components/sections/ArticleGrid";
 import { CTA } from "@/components/sections/CTA";
+import { getArticles } from "@/lib/public/api";
 
 export const metadata: Metadata = {
   title: "Berita & Artikel",
@@ -10,7 +11,8 @@ export const metadata: Metadata = {
     "Wawasan, tips, dan edukasi kesehatan terbaru dari tim medis Klinik Sehat Nusantara.",
 };
 
-export default function ArtikelPage() {
+export default async function ArtikelPage() {
+  const articles = await getArticles();
   return (
     <>
       <PageBanner
@@ -21,7 +23,7 @@ export default function ArtikelPage() {
       />
       <section className="pb-20 lg:pb-28">
         <Container>
-          <ArticleGrid />
+          <ArticleGrid articles={articles} />
         </Container>
       </section>
       <CTA />

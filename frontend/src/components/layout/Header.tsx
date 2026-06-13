@@ -4,17 +4,19 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useScroll, useMotionValueEvent } from "framer-motion";
-import { Menu, X, Phone, CalendarCheck } from "lucide-react";
+import { Menu, X, Phone, CalendarCheck, UserRound } from "lucide-react";
 import { nav, site } from "@/lib/site";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/brand-button";
 import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/utils";
+import { usePatientAuth } from "@/components/patient/PatientAuthProvider";
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const { patient } = usePatientAuth();
   const { scrollY } = useScroll();
 
   useMotionValueEvent(scrollY, "change", (latest) => {
@@ -74,14 +76,23 @@ export function Header() {
           </nav>
 
           <div className="hidden items-center gap-2 lg:flex">
-            <a
-              href={`tel:${site.phone}`}
-              className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-ink-600 transition-colors hover:text-primary-700"
-            >
-              <Phone className="h-4 w-4" />
-              {site.phoneDisplay}
-            </a>
-            <Button href="/kontak" size="sm">
+            {patient ? (
+              <Link
+                href="/akun"
+                className="inline-flex items-center gap-2 rounded-full px-2.5 py-1.5 text-sm font-semibold text-ink-700 transition-colors hover:text-primary-700"
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary-600 text-[0.7rem] font-bold text-white">
+                  {patient.name.slice(0, 2).toUpperCase()}
+                </span>
+                Akun
+              </Link>
+            ) : (
+              <Button href="/masuk" variant="ghost" size="sm">
+                <UserRound className="h-4 w-4" />
+                Masuk
+              </Button>
+            )}
+            <Button href="/buat-janji" size="sm">
               <CalendarCheck className="h-4 w-4" />
               Buat Janji
             </Button>
@@ -141,11 +152,15 @@ export function Header() {
                 })}
               </div>
               <div className="mt-3 grid grid-cols-1 gap-2 border-t border-ink-100 pt-3">
-                <Button href="/kontak" className="w-full">
+                <Button href="/buat-janji" className="w-full">
                   <CalendarCheck className="h-4 w-4" />
                   Buat Janji
                 </Button>
-                <Button href={`tel:${site.phone}`} variant="outline" className="w-full">
+                <Button href={patient ? "/akun" : "/masuk"} variant="outline" className="w-full">
+                  <UserRound className="h-4 w-4" />
+                  {patient ? "Akun Saya" : "Masuk / Daftar"}
+                </Button>
+                <Button href={`tel:${site.phone}`} variant="ghost" className="w-full">
                   <Phone className="h-4 w-4" />
                   {site.phoneDisplay}
                 </Button>

@@ -98,6 +98,16 @@ func (h *Handler) ListAppointments(c *gin.Context) {
 		like := "%" + params.Q + "%"
 		q = q.Where("name ILIKE ? OR email ILIKE ? OR phone ILIKE ?", like, like, like)
 	}
+	// Calendar/agenda filters.
+	if did := c.Query("doctorId"); did != "" {
+		q = q.Where("doctor_id = ?", did)
+	}
+	if from := c.Query("from"); from != "" {
+		q = q.Where("appointment_date >= ?", from)
+	}
+	if to := c.Query("to"); to != "" {
+		q = q.Where("appointment_date <= ?", to)
+	}
 
 	var total int64
 	q.Count(&total)

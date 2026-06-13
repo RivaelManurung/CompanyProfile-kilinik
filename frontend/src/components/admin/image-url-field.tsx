@@ -1,10 +1,7 @@
 "use client";
 
-import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AdminImage } from "@/components/admin/admin-image";
+import { ImageUpload } from "@/components/admin/image-upload";
 
 interface ImageUrlFieldProps {
   id: string;
@@ -15,17 +12,22 @@ interface ImageUrlFieldProps {
   error?: string;
   helperText?: string;
   previewAlt?: string;
+  folder?: string;
+  aspect?: "video" | "square" | "wide";
 }
 
+/** Image field backed by the upload API. Keeps the original prop shape so the
+ *  promotion/article forms work unchanged, but now uploads a file instead of
+ *  asking for a URL. */
 export function ImageUrlField({
   id,
   label,
   value = "",
   onChange,
-  onBlur,
   error,
-  helperText = "Masukkan URL gambar. TODO: replace ImageUrlField with upload component when upload API is available.",
-  previewAlt,
+  helperText,
+  folder = "media",
+  aspect = "video",
 }: ImageUrlFieldProps) {
   const errorId = error ? `${id}-error` : undefined;
   const helperId = helperText ? `${id}-helper` : undefined;
@@ -33,33 +35,9 @@ export function ImageUrlField({
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
-      <div className="flex gap-2">
-        <Input
-          id={id}
-          type="url"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          onBlur={onBlur}
-          placeholder="https://example.com/image.jpg"
-          aria-invalid={Boolean(error)}
-          aria-describedby={[errorId, helperId].filter(Boolean).join(" ") || undefined}
-        />
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={() => onChange("")}
-          disabled={!value}
-          aria-label={`Bersihkan ${label}`}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
+      <ImageUpload value={value} onChange={onChange} folder={folder} aspect={aspect} />
       {helperText ? <p id={helperId} className="text-xs text-muted-foreground">{helperText}</p> : null}
       {error ? <p id={errorId} className="text-xs font-medium text-destructive">{error}</p> : null}
-      <div className="aspect-video overflow-hidden rounded-lg border border-border bg-muted">
-        <AdminImage src={value} alt={previewAlt ?? label} className="h-full w-full object-cover" />
-      </div>
     </div>
   );
 }

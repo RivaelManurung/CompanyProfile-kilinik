@@ -15,7 +15,19 @@ import type {
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const ASSET_BASE = BASE.replace(/\/api\/?$/, "");
 const REQUEST_TIMEOUT = 12000;
+
+/** Resolve a stored image path to an absolute URL.
+ * - Absolute URLs (http...) are returned as-is.
+ * - Backend uploads ("/uploads/..") are prefixed with the API host.
+ * - Other relative paths ("/doctors/..") stay relative to the frontend's public/. */
+export function assetUrl(path?: string | null): string {
+  if (!path) return "";
+  if (/^https?:\/\//.test(path)) return path;
+  if (path.startsWith("/uploads/")) return `${ASSET_BASE}${path}`;
+  return path;
+}
 
 export class ApiError extends Error {
   status: number;
@@ -136,7 +148,61 @@ export const auditApi = {
   list: (params: ListParams = {}) => request<ListEnvelope<AuditLog>>(`/admin/audit-logs?${qs(params)}`),
 };
 
-// ---- Roles (read-only RBAC matrix) ----
+// ---- Roles (editable RBAC matrix) ----
 export const rolesApi = {
   list: () => request<Envelope<RolesResponse>>("/admin/roles").then((r) => r.data),
+  updatePermissions: (key: string, permissions: string[]) =>
+    request<Envelope<RolesResponse>>(`/admin/roles/${key}/permissions`, {
+      method: "PUT",
+      body: JSON.stringify({ permissions }),
+    }).then((r) => r.data),
+};
+
+// ---- File upload (multipart) ----
+export const uploadApi = {
+  async image(file: File, folder = "general"): Promise<{ url: string }> {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("folder", folder);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    try {
+      const res = await fetch(`${BASE}/admin/upload`, {
+        method: "POST",
+        credentials: "include",
+        body: form,
+        signal: controller.signal,
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const err = body?.error ?? {};
+        throw new ApiError(res.status, err.code ?? "ERROR", err.message ?? "Gagal mengunggah", err.details);
+      }
+      return body.data as { url: string };
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        throw new ApiError(408, "TIMEOUT", "Unggahan terlalu lama. Coba lagi.");
+      }
+      if (err instanceof TypeError) {
+        throw new ApiError(0, "NETWORK_ERROR", "Tidak bisa terhubung ke backend.");
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeout);
+    }
+  },
+};
+
+// ---- Dropdown option helpers (dynamic select lists) ----
+export interface SelectOption { value: string; label: string }
+
+export const optionsApi = {
+  async doctors(): Promise<SelectOption[]> {
+    const res = await doctorsApi.list({ limit: 100, sort: "name", direction: "asc" });
+    return res.data.map((d) => ({ value: d.name, label: `${d.name}${d.specialty ? ` — ${d.specialty}` : ""}` }));
+  },
+  async services(): Promise<SelectOption[]> {
+    const res = await servicesApi.list({ limit: 100, sort: "order_index", direction: "asc" });
+    return res.data.map((s) => ({ value: s.title, label: s.title }));
+  },
 };

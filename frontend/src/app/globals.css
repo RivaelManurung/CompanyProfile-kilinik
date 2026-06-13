@@ -3,24 +3,27 @@
 
 /* ============================================================
    Klinik Sehat Nusantara — Design System (Tailwind v4)
-   Palette: Medical Teal / Emerald
+   Palette: Forest Green (selaras dengan dashboard admin)
    ============================================================ */
 
 @theme {
-  /* ---- Brand: Teal (primary) ---- */
-  --color-primary-50: #ecfeff;
-  --color-primary-100: #cffafe;
-  --color-primary-200: #a5f3f1;
-  --color-primary-300: #6ee7e3;
-  --color-primary-400: #2dd4cf;
-  --color-primary-500: #0ea5a4;
-  --color-primary-600: #0d8b8a;
-  --color-primary-700: #0f6e6e;
-  --color-primary-800: #115656;
-  --color-primary-900: #134848;
-  --color-primary-950: #0a2e2e;
+  /* ---- Brand: Forest Green (primary) — situs publik ----
+     Satu identitas dengan dashboard admin (#06402b). Ramp dibuat
+     condong gelap & sedikit ter-desaturasi agar terasa klinis,
+     tenang, dan editorial — bukan hijau neon. ---- */
+  --color-primary-50: #eff7f2;
+  --color-primary-100: #d7ece0;
+  --color-primary-200: #b2d8c3;
+  --color-primary-300: #82bd9f;
+  --color-primary-400: #4e9d77;
+  --color-primary-500: #2c8159;
+  --color-primary-600: #1c6745;
+  --color-primary-700: #15533a;
+  --color-primary-800: #134632;
+  --color-primary-900: #0f3829;
+  --color-primary-950: #06251a;
 
-  /* ---- Accent: Emerald ---- */
+  /* ---- Accent: Emerald (highlight hemat, mis. harga/centang) ---- */
   --color-accent-50: #ecfdf5;
   --color-accent-100: #d1fae5;
   --color-accent-200: #a7f3d0;
@@ -47,8 +50,8 @@
 
   /* ---- Surfaces ---- */
   --color-surface: #ffffff;
-  --color-surface-muted: #f4f9f9;
-  --color-dark: #0f2e2e;
+  --color-surface-muted: #f3f8f5;
+  --color-dark: #0b2a1d;
 
   /* ---- Semantic ---- */
   --color-success: #10b981;
@@ -73,7 +76,7 @@
   --shadow-soft: 0 1px 2px rgba(15, 46, 46, 0.04), 0 4px 16px rgba(15, 46, 46, 0.06);
   --shadow-card: 0 2px 4px rgba(15, 46, 46, 0.04), 0 12px 32px rgba(15, 46, 46, 0.08);
   --shadow-lift: 0 8px 16px rgba(15, 46, 46, 0.08), 0 24px 48px rgba(15, 46, 46, 0.12);
-  --shadow-glow: 0 8px 40px rgba(14, 165, 164, 0.28);
+  --shadow-glow: 0 10px 40px rgba(28, 103, 69, 0.24);
 
   /* ---- Easing & timing ---- */
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
@@ -144,7 +147,7 @@ h1, h2, h3, h4, h5 {
    ============================================================ */
 @layer utilities {
   .text-gradient {
-    background: linear-gradient(90deg, var(--color-primary-600), var(--color-accent-500));
+    background: linear-gradient(92deg, var(--color-primary-700), var(--color-primary-500));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -152,13 +155,13 @@ h1, h2, h3, h4, h5 {
 
   .bg-grid {
     background-image:
-      linear-gradient(to right, rgba(14, 165, 164, 0.06) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(14, 165, 164, 0.06) 1px, transparent 1px);
-    background-size: 48px 48px;
+      linear-gradient(to right, rgba(28, 103, 69, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(28, 103, 69, 0.05) 1px, transparent 1px);
+    background-size: 56px 56px;
   }
 
   .bg-dots {
-    background-image: radial-gradient(rgba(14, 165, 164, 0.18) 1px, transparent 1px);
+    background-image: radial-gradient(rgba(28, 103, 69, 0.16) 1px, transparent 1px);
     background-size: 22px 22px;
   }
 
@@ -182,9 +185,9 @@ h1, h2, h3, h4, h5 {
   50% { transform: translateY(-14px); }
 }
 @keyframes pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgba(14, 165, 164, 0.45); }
-  70% { box-shadow: 0 0 0 16px rgba(14, 165, 164, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(14, 165, 164, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(28, 103, 69, 0.4); }
+  70% { box-shadow: 0 0 0 16px rgba(28, 103, 69, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(28, 103, 69, 0); }
 }
 @keyframes marquee {
   from { transform: translateX(0); }
@@ -264,38 +267,73 @@ h1, h2, h3, h4, h5 {
    tokens above so the public site keeps its rounding.
    ============================================================ */
 :root {
-  /* Admin brand: Teal (#0d8b8a) — sama dengan tombol CTA situs publik */
+  /* Admin brand: Dark Green (#06402b) */
   --radius: 0.75rem;
   --card: #ffffff;
-  --card-foreground: #1a2424;
+  --card-foreground: #102019;
   --popover: #ffffff;
-  --popover-foreground: #1a2424;
-  --primary: #0d8b8a;
+  --popover-foreground: #102019;
+  --primary: #06402b;
   --primary-foreground: #ffffff;
-  --secondary: #e9efef;
-  --secondary-foreground: #1a2424;
-  --muted: #f4f9f9;
-  --muted-foreground: #5c7474;
-  --accent: #e6f7f7;
-  --accent-foreground: #0f6e6e;
+  --secondary: #eaf1ed;
+  --secondary-foreground: #102019;
+  --muted: #f2f7f4;
+  --muted-foreground: #5a7065;
+  --accent: #e3f0ea;
+  --accent-foreground: #06402b;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #d4dede;
-  --input: #d4dede;
-  --ring: #0ea5a4;
-  --chart-1: #0d8b8a;
-  --chart-2: #0ea5a4;
-  --chart-3: #6ee7e3;
-  --chart-4: #0f6e6e;
-  --chart-5: #115656;
-  --sidebar: #0f2e2e;
-  --sidebar-foreground: #cffafe;
-  --sidebar-primary: #0ea5a4;
-  --sidebar-primary-foreground: #052e2e;
-  --sidebar-accent: #134848;
-  --sidebar-accent-foreground: #e6f7f7;
+  --border: #d7e2dc;
+  --input: #d7e2dc;
+  --ring: #0c6b48;
+  --chart-1: #06402b;
+  --chart-2: #0c6b48;
+  --chart-3: #2f9e6e;
+  --chart-4: #6cc39a;
+  --chart-5: #b6e0cb;
+  --sidebar: #04331f;
+  --sidebar-foreground: #d6e8de;
+  --sidebar-primary: #3fae7a;
+  --sidebar-primary-foreground: #04210f;
+  --sidebar-accent: #0a4a31;
+  --sidebar-accent-foreground: #e3f0ea;
   --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: #0ea5a4;
+  --sidebar-ring: #3fae7a;
+}
+
+.dark {
+  --background: #07120d;
+  --foreground: #e1ebe5;
+  --card: #0e1a14;
+  --card-foreground: #e1ebe5;
+  --popover: #0e1a14;
+  --popover-foreground: #e1ebe5;
+  --primary: #34a574;
+  --primary-foreground: #04210f;
+  --secondary: #16241c;
+  --secondary-foreground: #e1ebe5;
+  --muted: #131f18;
+  --muted-foreground: #82998c;
+  --accent: #173a28;
+  --accent-foreground: #b6e0cb;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #21342a;
+  --input: #21342a;
+  --ring: #34a574;
+  --chart-1: #34a574;
+  --chart-2: #2f9e6e;
+  --chart-3: #6cc39a;
+  --chart-4: #0c6b48;
+  --chart-5: #b6e0cb;
+  --sidebar: #04281a;
+  --sidebar-foreground: #d6e8de;
+  --sidebar-primary: #3fae7a;
+  --sidebar-primary-foreground: #04210f;
+  --sidebar-accent: #0a4a31;
+  --sidebar-accent-foreground: #e3f0ea;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #3fae7a;
 }
 
 @theme inline {

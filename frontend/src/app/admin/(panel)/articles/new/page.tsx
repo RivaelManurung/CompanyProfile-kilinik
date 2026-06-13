@@ -15,11 +15,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PageHeader } from "@/components/admin/page-header";
 import { FormShell, FormGrid, FieldGroup, FormActions } from "@/components/admin/form-shell";
+import { DatePicker } from "@/components/ui/date-picker";
 import { PreviewPanel, PreviewCard } from "@/components/admin/preview-panel";
 import { RichTextEditor, htmlToPlainText } from "@/components/admin/rich-text-editor";
-import { ImageUrlField } from "@/components/admin/image-url-field";
+import { ImageUpload } from "@/components/admin/image-upload";
 import { AdminImage } from "@/components/admin/admin-image";
 
 interface FormValues {
@@ -97,6 +105,7 @@ export default function NewArticlePage() {
   const status = useWatch({ control, name: "status" });
   const seoTitle = useWatch({ control, name: "seoTitle" });
   const seoDescription = useWatch({ control, name: "seoDescription" });
+  const ogImage = useWatch({ control, name: "ogImage" });
   const featured = useWatch({ control, name: "featured" });
 
   useEffect(() => {
@@ -111,10 +120,11 @@ export default function NewArticlePage() {
     form.setValue("readMins", readingTime);
   }, [readingTime, form]);
 
-  async function save(publishStatus: "draft" | "published" | "scheduled") {
+  async function save(publishStatus: "draft" | "published" | "scheduled" | "archived") {
     const valid = await form.trigger();
     if (!valid) {
-      toast.error("Mohon periksa kembali form");
+      const first = Object.values(form.formState.errors)[0];
+      toast.error((first?.message as string) || "Mohon periksa kembali isian form");
       return;
     }
     const values = form.getValues();
@@ -207,17 +217,8 @@ export default function NewArticlePage() {
             </FormGrid>
           </FormShell>
 
-          <FormShell title="Konten" description="Gambar sampul dan isi artikel.">
+          <FormShell title="Konten" description="Tulis isi artikel dengan editor lengkap.">
             <FormGrid>
-              <FieldGroup className="md:col-span-2">
-                <ImageUrlField
-                  id="coverImage"
-                  label="URL Gambar Sampul"
-                  value={coverImage ?? ""}
-                  onChange={(v) => form.setValue("coverImage", v)}
-                  onBlur={() => form.trigger("coverImage")}
-                />
-              </FieldGroup>
               <FieldGroup className="md:col-span-2">
                 <RichTextEditor
                   id="content"
@@ -252,8 +253,10 @@ export default function NewArticlePage() {
             <FormGrid>
               <FieldGroup>
                 <Label htmlFor="seoTitle">Judul SEO</Label>
-                <Input id="seoTitle" placeholder="Judul untuk hasil pencarian" maxLength={60} {...form.register("seoTitle")} />
-                <p className="text-xs text-muted-foreground">{seoTitle.length}/60 karakter</p>
+                <Input id="seoTitle" placeholder="Judul untuk hasil pencarian" {...form.register("seoTitle")} />
+                <p className={`text-xs ${seoTitle.length > 60 ? "text-amber-600" : "text-muted-foreground"}`}>
+                  {seoTitle.length}/60 karakter {seoTitle.length > 60 ? "· melebihi anjuran" : ""}
+                </p>
               </FieldGroup>
               <FieldGroup>
                 <Label htmlFor="focusKeyword">Kata Kunci Fokus</Label>
@@ -261,12 +264,24 @@ export default function NewArticlePage() {
               </FieldGroup>
               <FieldGroup className="md:col-span-2">
                 <Label htmlFor="seoDescription">Deskripsi SEO</Label>
-                <Textarea id="seoDescription" rows={2} placeholder="Deskripsi untuk hasil pencarian" maxLength={160} {...form.register("seoDescription")} />
-                <p className="text-xs text-muted-foreground">{seoDescription.length}/160 karakter</p>
+                <Textarea id="seoDescription" rows={2} placeholder="Deskripsi untuk hasil pencarian" {...form.register("seoDescription")} />
+                <p className={`text-xs ${seoDescription.length > 160 ? "text-amber-600" : "text-muted-foreground"}`}>
+                  {seoDescription.length}/160 karakter {seoDescription.length > 160 ? "· melebihi anjuran" : ""}
+                </p>
               </FieldGroup>
               <FieldGroup className="md:col-span-2">
-                <Label htmlFor="ogImage">URL Gambar OG (Open Graph)</Label>
-                <Input id="ogImage" placeholder="https://example.com/og-image.jpg" {...form.register("ogImage")} />
+                <Label htmlFor="ogImage">Gambar OG (Open Graph)</Label>
+                <div className="max-w-xs">
+                  <ImageUpload
+                    value={ogImage ?? ""}
+                    onChange={(v) => form.setValue("ogImage", v)}
+                    folder="articles"
+                    aspect="video"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Gambar saat artikel dibagikan ke media sosial. Ideal 1200×630px.
+                </p>
               </FieldGroup>
             </FormGrid>
           </FormShell>
@@ -278,27 +293,46 @@ export default function NewArticlePage() {
             sticky
             sections={[
               {
+                title: "Gambar Sampul",
+                children: (
+                  <ImageUpload
+                    value={coverImage ?? ""}
+                    onChange={(v) => form.setValue("coverImage", v)}
+                    folder="articles"
+                    aspect="video"
+                  />
+                ),
+              },
+              {
                 title: "Pengaturan Publikasi",
                 children: (
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="status">Status</Label>
-                      <select
-                        id="status"
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 outline-none"
+                      <Select
                         value={status}
-                        onChange={(e) => form.setValue("status", e.target.value as FormValues["status"])}
+                        onValueChange={(val) => form.setValue("status", val as FormValues["status"])}
                       >
-                        <option value="draft">Draf</option>
-                        <option value="published">Terbit</option>
-                        <option value="scheduled">Terjadwal</option>
-                        <option value="archived">Arsip</option>
-                      </select>
+                        <SelectTrigger id="status" className="h-9">
+                          <SelectValue placeholder="Pilih status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="draft">Draf</SelectItem>
+                          <SelectItem value="published">Terbit</SelectItem>
+                          <SelectItem value="scheduled">Terjadwal</SelectItem>
+                          <SelectItem value="archived">Arsip</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     {status === "scheduled" && (
                       <div className="space-y-2">
                         <Label htmlFor="scheduledAt">Jadwal Terbit</Label>
-                        <Input id="scheduledAt" type="datetime-local" {...form.register("scheduledAt")} />
+                        <DatePicker
+                          id="scheduledAt"
+                          withTime
+                          value={form.watch("scheduledAt") ?? ""}
+                          onChange={(v) => form.setValue("scheduledAt", v, { shouldDirty: true, shouldValidate: true })}
+                        />
                       </div>
                     )}
                     <div className="flex items-center gap-3 rounded-lg border border-border p-3">
@@ -400,12 +434,12 @@ export default function NewArticlePage() {
         </Button>
         <Button
           type="button"
-          onClick={() => save(status === "scheduled" ? "scheduled" : "published")}
+          onClick={() => save(status === "draft" ? "published" : status)}
           disabled={form.formState.isSubmitting}
         >
           {form.formState.isSubmitting ? (
-            <><Loader2 className="h-4 w-4 animate-spin" /> Menerbitkan</>
-          ) : status === "scheduled" ? "Jadwalkan" : "Terbitkan"}
+            <><Loader2 className="h-4 w-4 animate-spin" /> Menyimpan</>
+          ) : status === "scheduled" ? "Jadwalkan" : status === "archived" ? "Arsipkan" : "Terbitkan"}
         </Button>
       </FormActions>
     </div>

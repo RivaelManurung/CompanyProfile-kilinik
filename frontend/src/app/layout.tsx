@@ -49,7 +49,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0ea5a4",
+  themeColor: "#06402b",
   width: "device-width",
   initialScale: 1,
 };
@@ -60,7 +60,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className={`${inter.variable} ${jakarta.variable} h-full`}>
+    <html lang="id" className={`${inter.variable} ${jakarta.variable} h-full`} suppressHydrationWarning>
       <body className="min-h-full bg-white">{children}</body>
     </html>
   );

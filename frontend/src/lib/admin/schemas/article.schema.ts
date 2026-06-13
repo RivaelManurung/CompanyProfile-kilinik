@@ -22,8 +22,10 @@ export const articleSchema = z.object({
   tags: z.string().optional().or(z.literal("")),
   author: z.string().optional().or(z.literal("")),
   featured: z.boolean().default(false),
-  seoTitle: z.string().max(60, "Judul SEO maksimal 60 karakter").optional().or(z.literal("")),
-  seoDescription: z.string().max(160, "Deskripsi SEO maksimal 160 karakter").optional().or(z.literal("")),
+  // Recommended lengths (60 / 160) are advisory in the UI; hard caps here are
+  // generous safety limits so existing/long values never block saving.
+  seoTitle: z.string().max(150, "Judul SEO terlalu panjang").optional().or(z.literal("")),
+  seoDescription: z.string().max(300, "Deskripsi SEO terlalu panjang").optional().or(z.literal("")),
   ogImage: z.string().optional().or(z.literal("")),
   canonicalUrl: z.string().optional().or(z.literal("")),
   focusKeyword: z.string().max(100).optional().or(z.literal("")),

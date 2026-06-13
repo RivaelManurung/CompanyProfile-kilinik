@@ -268,6 +268,7 @@ export default function PromotionsPage() {
             toast.success(`Berhasil mengaktifkan ${selected.length} promosi`, { id: "bulk-promotion" });
             clear();
             await load();
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (err) {
             toast.error("Gagal mengaktifkan beberapa promosi", { id: "bulk-promotion" });
           }
@@ -288,6 +289,7 @@ export default function PromotionsPage() {
             toast.success(`Berhasil menonaktifkan ${selected.length} promosi`, { id: "bulk-promotion" });
             clear();
             await load();
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (err) {
             toast.error("Gagal menonaktifkan beberapa promosi", { id: "bulk-promotion" });
           }
@@ -310,6 +312,7 @@ export default function PromotionsPage() {
             toast.success(`Berhasil menghapus ${selected.length} promosi`, { id: "bulk-delete" });
             clear();
             await load();
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (err) {
             toast.error("Gagal menghapus beberapa promosi", { id: "bulk-delete" });
           }
@@ -361,36 +364,32 @@ export default function PromotionsPage() {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="flex flex-wrap gap-1" role="group" aria-label="Filter status">
               {STATUS_FILTERS.map((f) => (
-                <button
+                <Button
                   key={f.value}
                   type="button"
+                  variant={status === f.value ? "default" : "outline"}
+                  size="sm"
+                  className="h-7 px-3 text-xs font-medium"
                   aria-pressed={status === f.value}
                   onClick={() => updateParams({ status: f.value, page: 1 })}
-                  className={
-                    status === f.value
-                      ? "rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm"
-                      : "rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }
                 >
                   {f.label}
-                </button>
+                </Button>
               ))}
             </div>
             <div className="flex flex-wrap gap-1" role="group" aria-label="Filter tipe kampanye">
               {CAMPAIGN_FILTERS.map((f) => (
-                <button
+                <Button
                   key={f.value}
                   type="button"
+                  variant={campaign === f.value ? "secondary" : "outline"}
+                  size="sm"
+                  className="h-7 px-3 text-xs font-medium"
                   aria-pressed={campaign === f.value}
                   onClick={() => updateParams({ campaign: f.value, page: 1 })}
-                  className={
-                    campaign === f.value
-                      ? "rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground shadow-sm"
-                      : "rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }
                 >
                   {f.label}
-                </button>
+                </Button>
               ))}
             </div>
           </div>

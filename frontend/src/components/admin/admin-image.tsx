@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { assetUrl } from "@/lib/admin/api";
 
 interface AdminImageProps {
   src?: string | null;
@@ -13,7 +14,7 @@ interface AdminImageProps {
 
 export function AdminImage({ src, alt = "", className, fallbackClassName }: AdminImageProps) {
   const [failedKeys, setFailedKeys] = useState<Set<string>>(new Set());
-  const cleanSrc = src?.trim();
+  const cleanSrc = assetUrl(src?.trim());
 
   if (!cleanSrc || failedKeys.has(cleanSrc)) {
     return (

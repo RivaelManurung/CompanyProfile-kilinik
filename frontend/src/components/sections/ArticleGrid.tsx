@@ -1,22 +1,44 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArticleCard } from "@/components/ui/ArticleCard";
-import { articles } from "@/lib/data";
+import { ArticleCard, type ArticleCardData } from "@/components/ui/ArticleCard";
+import { Pagination } from "@/components/ui/Pagination";
 import { cn } from "@/lib/utils";
 
-export function ArticleGrid() {
+const PER_PAGE = 9;
+
+export function ArticleGrid({ articles }: { articles: ArticleCardData[] }) {
   const categories = useMemo(
     () => ["Semua", ...Array.from(new Set(articles.map((a) => a.category)))],
-    [],
+    [articles],
   );
   const [active, setActive] = useState("Semua");
+  const [page, setPage] = useState(1);
+  const topRef = useRef<HTMLDivElement>(null);
 
-  const filtered = active === "Semua" ? articles : articles.filter((a) => a.category === active);
+  const filtered =
+    active === "Semua"
+      ? articles
+      : articles.filter((a) => a.category === active);
+
+  // Reset to first page whenever the filter narrows the result set.
+  useEffect(() => {
+    setPage(1);
+  }, [active]);
+
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const safePage = Math.min(page, totalPages || 1);
+  const start = (safePage - 1) * PER_PAGE;
+  const visible = filtered.slice(start, start + PER_PAGE);
+
+  const handleChange = (next: number) => {
+    setPage(next);
+    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
-    <div>
+    <div ref={topRef} className="scroll-mt-28">
       <div className="flex flex-wrap gap-2.5">
         {categories.map((c) => (
           <button
@@ -34,9 +56,12 @@ export function ArticleGrid() {
         ))}
       </div>
 
-      <motion.div layout className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <motion.div
+        layout
+        className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+      >
         <AnimatePresence mode="popLayout">
-          {filtered.map((a) => (
+          {visible.map((a) => (
             <motion.div
               key={a.slug}
               layout
@@ -50,6 +75,13 @@ export function ArticleGrid() {
           ))}
         </AnimatePresence>
       </motion.div>
+
+      <Pagination
+        page={safePage}
+        totalPages={totalPages}
+        onChange={handleChange}
+        className="mt-12"
+      />
     </div>
   );
 }

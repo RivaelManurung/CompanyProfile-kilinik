@@ -8,6 +8,7 @@ import {
   List, ListOrdered, Quote, Link as LinkIcon, Unlink, Undo2, Redo2,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface RichTextEditorProps {
@@ -57,7 +58,8 @@ export function RichTextEditor({
     editorProps: {
       attributes: {
         id,
-        class: "prose prose-sm max-w-none min-h-[260px] px-4 py-3 focus:outline-none dark:prose-invert",
+        class:
+          "tiptap prose prose-base max-w-2xl mx-auto min-h-[460px] px-6 py-8 focus:outline-none dark:prose-invert prose-headings:font-semibold prose-p:leading-relaxed",
         "aria-label": label,
         ...(error ? { "aria-invalid": "true", "aria-describedby": `${id}-error` } : {}),
       },
@@ -75,27 +77,59 @@ export function RichTextEditor({
     }
   }, [value, editor]);
 
+  const plain = htmlToPlainText(value || "");
+  const words = plain ? plain.split(/\s+/).filter(Boolean).length : 0;
+  const minutes = Math.max(1, Math.round(words / 200));
+
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={id}>
+      <Label htmlFor={id} className="text-sm font-medium">
         {label}
         {required ? <span className="text-destructive ml-0.5">*</span> : null}
       </Label>
-      <div className={cn("overflow-hidden rounded-md border bg-background", error ? "border-destructive" : "border-input")}>
-        <Toolbar editor={editor} />
-        {editor && editor.isEmpty && placeholder ? (
-          <div className="pointer-events-none absolute px-4 py-3 text-sm text-muted-foreground/50">{placeholder}</div>
-        ) : null}
-        <EditorContent editor={editor} />
+
+      <div
+        className={cn(
+          "overflow-hidden rounded-xl border bg-card shadow-sm transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/15",
+          error ? "border-destructive" : "border-input",
+        )}
+      >
+        {/* scroll region keeps the toolbar pinned while writing long articles */}
+        <div className="max-h-[72vh] overflow-y-auto">
+          <Toolbar editor={editor} />
+          <div
+            className="relative cursor-text"
+            onClick={() => editor?.chain().focus().run()}
+          >
+            {editor && editor.isEmpty && placeholder ? (
+              <p className="pointer-events-none absolute left-1/2 top-8 w-full max-w-2xl -translate-x-1/2 px-6 text-base text-muted-foreground/50">
+                {placeholder}
+              </p>
+            ) : null}
+            <EditorContent editor={editor} />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between border-t border-border bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
+          <span>
+            <span className="font-medium text-foreground">{words.toLocaleString("id-ID")}</span> kata
+          </span>
+          <span>≈ {minutes} menit baca</span>
+        </div>
       </div>
-      {error && <p id={`${id}-error`} role="alert" className="text-xs font-medium text-destructive">{error}</p>}
+
+      {error && (
+        <p id={`${id}-error`} role="alert" className="text-xs font-medium text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
 
 function Toolbar({ editor }: { editor: Editor | null }) {
   if (!editor) {
-    return <div className="h-10 border-b border-border bg-muted/30" aria-hidden />;
+    return <div className="h-12 border-b border-border bg-muted/40" aria-hidden />;
   }
 
   function setLink() {
@@ -110,7 +144,7 @@ function Toolbar({ editor }: { editor: Editor | null }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-0.5 border-b border-border bg-muted/30 p-1">
+    <div className="sticky top-0 z-10 flex flex-wrap items-center gap-0.5 border-b border-border bg-card/95 p-1.5 backdrop-blur supports-[backdrop-filter]:bg-card/80">
       <ToolButton label="Tebal" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()} icon={Bold} />
       <ToolButton label="Miring" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()} icon={Italic} />
       <ToolButton label="Coret" active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()} icon={Strikethrough} />
@@ -141,20 +175,19 @@ function ToolButton({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant={active ? "secondary" : "ghost"}
+      size="icon"
+      className="h-8 w-8"
       aria-label={label}
       aria-pressed={active}
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className={cn(
-        "inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
-        active && "bg-primary/10 text-primary",
-      )}
     >
       <Icon className="h-4 w-4" />
-    </button>
+    </Button>
   );
 }
 

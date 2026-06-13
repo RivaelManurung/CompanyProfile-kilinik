@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/admin/page-header";
 import { FormShell, FormGrid, FieldGroup, FormActions } from "@/components/admin/form-shell";
+import { DatePicker } from "@/components/ui/date-picker";
 import { PreviewPanel } from "@/components/admin/preview-panel";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -447,20 +448,18 @@ export default function EditPromotionPage() {
               <FormGrid>
                 <FieldGroup>
                   <Label htmlFor="startDate">Tanggal Mulai</Label>
-                  <Input
+                  <DatePicker
                     id="startDate"
-                    type="date"
                     value={watchedStartDate}
-                    onChange={(e) => form.setValue("startDate", e.target.value, { shouldDirty: true, shouldValidate: true })}
+                    onChange={(v) => form.setValue("startDate", v, { shouldDirty: true, shouldValidate: true })}
                   />
                 </FieldGroup>
                 <FieldGroup>
                   <Label htmlFor="endDate">Tanggal Akhir</Label>
-                  <Input
+                  <DatePicker
                     id="endDate"
-                    type="date"
                     value={watchedEndDate}
-                    onChange={(e) => form.setValue("endDate", e.target.value, { shouldDirty: true, shouldValidate: true })}
+                    onChange={(v) => form.setValue("endDate", v, { shouldDirty: true, shouldValidate: true })}
                   />
                   {form.formState.errors.endDate && <p className="text-xs font-medium text-destructive">{String(form.formState.errors.endDate.message)}</p>}
                 </FieldGroup>
@@ -509,21 +508,23 @@ export default function EditPromotionPage() {
                     render={({ field }) => (
                       <div className="flex flex-wrap gap-2">
                         {ACCENT_COLORS.map((c) => (
-                          <button
+                          <Button
                             key={c.value}
                             type="button"
-                            onClick={() => field.onChange(c.value)}
+                            variant="ghost"
+                            size="icon"
                             className={cn(
-                              "flex h-9 w-9 items-center justify-center rounded-full border-2 transition-all",
+                              "h-9 w-9 rounded-full border-2 transition-all",
                               field.value === c.value
                                 ? "border-foreground ring-2 ring-foreground/20"
                                 : "border-transparent hover:border-muted-foreground/30",
                             )}
                             aria-label={c.label}
                             title={c.label}
+                            onClick={() => field.onChange(c.value)}
                           >
                             <span className={cn("h-5 w-5 rounded-full", accentBg[c.value])} />
-                          </button>
+                          </Button>
                         ))}
                       </div>
                     )}

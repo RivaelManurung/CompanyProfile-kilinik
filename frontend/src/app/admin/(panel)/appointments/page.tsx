@@ -206,6 +206,7 @@ export default function AppointmentsPage() {
             toast.success(`Berhasil mengonfirmasi ${selected.length} janji temu`, { id: "bulk-update" });
             clear();
             await load();
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (err) {
             toast.error("Gagal memperbarui status beberapa janji temu", { id: "bulk-update" });
           }
@@ -223,6 +224,7 @@ export default function AppointmentsPage() {
             toast.success(`Berhasil menyelesaikan ${selected.length} janji temu`, { id: "bulk-update" });
             clear();
             await load();
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (err) {
             toast.error("Gagal memperbarui status beberapa janji temu", { id: "bulk-update" });
           }
@@ -245,6 +247,7 @@ export default function AppointmentsPage() {
             toast.success(`Berhasil menghapus ${selected.length} janji temu`, { id: "bulk-delete" });
             clear();
             await load();
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (err) {
             toast.error("Gagal menghapus beberapa janji temu", { id: "bulk-delete" });
           }
