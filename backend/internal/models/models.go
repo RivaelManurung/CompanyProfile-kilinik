@@ -28,6 +28,8 @@ type Appointment struct {
 	Email           string    `json:"email"`
 	Service         string    `json:"service"`
 	Doctor          string    `json:"doctor"`
+	DoctorID        uint      `gorm:"index" json:"doctorId"`        // FK to Doctor (0 = unspecified)
+	PatientUserID   uint      `gorm:"index" json:"patientUserId"`   // FK to PatientUser (0 = guest/admin-created)
 	PatientType     string    `json:"patientType"` // new|returning
 	Source          string    `gorm:"index" json:"source"` // admin|website|whatsapp|phone
 	AppointmentDate string    `json:"appointmentDate"`
@@ -48,6 +50,7 @@ type Doctor struct {
 	ImageURL   string    `json:"imageUrl"`
 	Accent     string    `json:"accent"`
 	OrderIndex int       `gorm:"default:0" json:"orderIndex"`
+	SlotMinutes int      `gorm:"default:30" json:"slotMinutes"` // booking slot length in minutes
 	Active     bool      `json:"active"` // explicit in handler; no default:true (see Admin.Active)
 	CreatedAt  time.Time `json:"createdAt"`
 	UpdatedAt  time.Time `json:"updatedAt"`
@@ -153,10 +156,42 @@ type AuditLog struct {
 	CreatedAt  time.Time `gorm:"index" json:"createdAt"`
 }
 
+// RolePermission stores one (role, permission) grant. Together these rows make
+// the RBAC matrix editable at runtime instead of hardcoded in code.
+type RolePermission struct {
+	ID         uint   `gorm:"primaryKey" json:"id"`
+	Role       string `gorm:"uniqueIndex:idx_role_permission;not null" json:"role"`
+	Permission string `gorm:"uniqueIndex:idx_role_permission;not null" json:"permission"`
+}
+
 // AllModels returns every model for auto-migration.
+// PatientUser is a public patient account used to book appointments.
+// Separate realm from Admin — different table, cookie, and JWT role.
+type PatientUser struct {
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	Name         string    `gorm:"not null" json:"name"`
+	Email        string    `gorm:"uniqueIndex;not null" json:"email"`
+	Phone        string    `json:"phone"`
+	PasswordHash string    `json:"-"`
+	Active       bool      `gorm:"default:true" json:"active"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+}
+
+// DoctorSchedule is one weekly working window for a doctor on a given weekday.
+// Availability slots are generated from these windows + Doctor.SlotMinutes.
+type DoctorSchedule struct {
+	ID          uint `gorm:"primaryKey" json:"id"`
+	DoctorID    uint `gorm:"index;not null" json:"doctorId"`
+	Weekday     int  `json:"weekday"`     // 0=Sunday … 6=Saturday (time.Weekday)
+	StartMinute int  `json:"startMinute"` // minutes from midnight, e.g. 480 = 08:00
+	EndMinute   int  `json:"endMinute"`   // e.g. 960 = 16:00
+}
+
 func AllModels() []any {
 	return []any{
 		&Admin{}, &Appointment{}, &Doctor{}, &Article{},
 		&Service{}, &Location{}, &Promotion{}, &AuditLog{},
+		&RolePermission{}, &PatientUser{}, &DoctorSchedule{},
 	}
 }

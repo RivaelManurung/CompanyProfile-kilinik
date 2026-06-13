@@ -3,6 +3,7 @@ package auth
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,11 +13,14 @@ import (
 )
 
 const (
-	CookieName    = "ksn_token"
-	tokenTTL      = 7 * 24 * time.Hour
-	ctxAdminIDKey = "adminID"
-	ctxAdminEmail = "adminEmail"
-	ctxAdminRole  = "adminRole"
+	CookieName        = "ksn_token"
+	PatientCookieName = "ksn_patient"
+	RolePatient       = "patient"
+	tokenTTL          = 7 * 24 * time.Hour
+	ctxAdminIDKey     = "adminID"
+	ctxAdminEmail     = "adminEmail"
+	ctxAdminRole      = "adminRole"
+	ctxPatientIDKey   = "patientID"
 )
 
 // Claims is the JWT payload for an authenticated admin.
@@ -129,6 +133,72 @@ func abort401(c *gin.Context, msg string) {
 	c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 		"error": gin.H{"code": "UNAUTHORIZED", "message": msg},
 	})
+}
+
+// ── Patient session (separate realm from admin) ─────────────────────────────
+
+// SetPatientCookie writes the patient auth cookie.
+func SetPatientCookie(c *gin.Context, token string, secure bool) {
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     PatientCookieName,
+		Value:    token,
+		Path:     "/",
+		MaxAge:   int(tokenTTL.Seconds()),
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+// ClearPatientCookie removes the patient auth cookie.
+func ClearPatientCookie(c *gin.Context, secure bool) {
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     PatientCookieName,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+// PatientMiddleware enforces a valid patient token with role=patient.
+func PatientMiddleware(secret string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokenStr := extractPatientToken(c)
+		if tokenStr == "" {
+			abort401(c, "missing patient token")
+			return
+		}
+		claims, err := ParseToken(secret, tokenStr)
+		if err != nil || claims.Role != RolePatient {
+			abort401(c, "invalid or expired patient token")
+			return
+		}
+		c.Set(ctxPatientIDKey, claims.Subject)
+		c.Next()
+	}
+}
+
+func extractPatientToken(c *gin.Context) string {
+	if h := c.GetHeader("Authorization"); strings.HasPrefix(h, "Bearer ") {
+		return strings.TrimPrefix(h, "Bearer ")
+	}
+	if ck, err := c.Cookie(PatientCookieName); err == nil {
+		return ck
+	}
+	return ""
+}
+
+// PatientID returns the authenticated patient id from context (0 if none).
+func PatientID(c *gin.Context) uint {
+	v, ok := c.Get(ctxPatientIDKey)
+	if !ok {
+		return 0
+	}
+	id, _ := strconv.ParseUint(v.(string), 10, 64)
+	return uint(id)
 }
 
 func itoa(u uint) string {

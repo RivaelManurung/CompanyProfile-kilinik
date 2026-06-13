@@ -67,3 +67,4 @@ Stateless JWT (HS256). Login sets a **httpOnly, SameSite=Lax** cookie named `ksn
 - All inputs validated via gin binding tags (length, email, enum).
 - CORS restricted to configured origins with credentials.
 - For production: set a strong `JWT_SECRET`, `APP_ENV=production` (enables `Secure` cookies), put TLS in front, and add rate limiting on `/auth/login`.
+# backend-klinik

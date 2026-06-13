@@ -8,6 +8,7 @@ import (
 	"sehatnusantara/api/internal/models"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type createUserRequest struct {
@@ -208,6 +209,7 @@ type roleInfo struct {
 	Description string   `json:"description"`
 	Permissions []string `json:"permissions"`
 	UserCount   int64    `json:"userCount"`
+	Editable    bool     `json:"editable"`
 }
 
 var roleLabels = map[string]struct{ Label, Description string }{
@@ -218,8 +220,8 @@ var roleLabels = map[string]struct{ Label, Description string }{
 	auth.RoleViewer:        {"Viewer", "Akses baca saja ke dashboard dan data."},
 }
 
-// ListRoles returns the role/permission matrix with live user counts.
-func (h *Handler) ListRoles(c *gin.Context) {
+// rolesPayload builds the role/permission matrix with live user counts.
+func (h *Handler) rolesPayload() gin.H {
 	roles := make([]roleInfo, 0, len(auth.AssignableRoles))
 	for _, key := range auth.AssignableRoles {
 		var count int64
@@ -231,12 +233,76 @@ func (h *Handler) ListRoles(c *gin.Context) {
 			Description: meta.Description,
 			Permissions: auth.PermissionsForRole(key),
 			UserCount:   count,
+			Editable:    key != auth.RoleSuperAdmin,
 		})
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"data": gin.H{
-			"roles":          roles,
-			"allPermissions": auth.AllPermissions,
-		},
+	return gin.H{
+		"roles":          roles,
+		"allPermissions": auth.AllPermissions,
+	}
+}
+
+// ListRoles returns the role/permission matrix with live user counts.
+func (h *Handler) ListRoles(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"data": h.rolesPayload()})
+}
+
+type updateRolePermissionsRequest struct {
+	Permissions []string `json:"permissions"`
+}
+
+// UpdateRolePermissions replaces a role's permission set. super_admin cannot be
+// edited (it always has full access). Persists to the DB and updates the live
+// in-memory matrix so checks take effect immediately.
+func (h *Handler) UpdateRolePermissions(c *gin.Context) {
+	role := c.Param("key")
+	if !auth.IsAssignableRole(role) {
+		fail(c, http.StatusBadRequest, "INVALID_ROLE", "Role tidak valid")
+		return
+	}
+	if role == auth.RoleSuperAdmin {
+		fail(c, http.StatusBadRequest, "PROTECTED_ROLE", "Super Admin selalu memiliki akses penuh dan tidak dapat diubah")
+		return
+	}
+
+	var req updateRolePermissionsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		failValidation(c, err)
+		return
+	}
+
+	// Keep only valid, known permissions.
+	valid := map[string]bool{}
+	for _, p := range auth.AllPermissions {
+		valid[p] = true
+	}
+	clean := make([]string, 0, len(req.Permissions))
+	seen := map[string]bool{}
+	for _, p := range req.Permissions {
+		if valid[p] && !seen[p] {
+			clean = append(clean, p)
+			seen[p] = true
+		}
+	}
+
+	// Persist: replace all rows for this role in one transaction.
+	err := h.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("role = ?", role).Delete(&models.RolePermission{}).Error; err != nil {
+			return err
+		}
+		for _, p := range clean {
+			if err := tx.Create(&models.RolePermission{Role: role, Permission: p}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
 	})
+	if err != nil {
+		fail(c, http.StatusInternalServerError, "DB_ERROR", "Gagal menyimpan perubahan izin")
+		return
+	}
+
+	auth.SetRolePermissions(role, clean)
+	h.audit(c, "update", "roles", role)
+	ok(c, h.rolesPayload())
 }

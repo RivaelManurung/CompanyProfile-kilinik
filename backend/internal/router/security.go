@@ -16,11 +16,18 @@ import (
 // oversized bodies. 1 MiB comfortably covers any article/promotion payload.
 const maxBodyBytes = 1 << 20
 
-// bodyLimit rejects request bodies larger than maxBodyBytes.
+// maxUploadBytes is the larger cap for the multipart image-upload route.
+const maxUploadBytes = 8 << 20 // 8 MiB
+
+// bodyLimit rejects request bodies larger than the route's cap.
 func bodyLimit() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		limit := int64(maxBodyBytes)
+		if strings.HasPrefix(c.Request.URL.Path, "/api/admin/upload") {
+			limit = maxUploadBytes
+		}
 		if c.Request.Body != nil {
-			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBodyBytes)
+			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, limit)
 		}
 		c.Next()
 	}

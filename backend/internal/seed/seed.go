@@ -33,6 +33,7 @@ func Run(db *gorm.DB, cfg *config.Config) error {
 	seedArticles(db)
 	seedAppointments(db)
 	seedAuditLogs(db)
+	seedRolePermissions(db)
 	log.Println("seed: complete")
 	return nil
 }

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,7 +31,13 @@ const (
 	PermissionAuditRead          = "audit:read"
 )
 
-var rolePermissions = map[string]map[string]bool{
+// permMu guards rolePermissions, which is hydrated from the database at boot
+// and mutated when a super admin edits the matrix at runtime.
+var permMu sync.RWMutex
+
+// defaultRolePermissions is the built-in baseline. It seeds the database on first
+// boot and is used as a fallback for any role with no stored rows.
+var defaultRolePermissions = map[string]map[string]bool{
 	"admin": {
 		PermissionDashboardRead: true, PermissionAppointmentsRead: true, PermissionAppointmentsWrite: true, PermissionAppointmentsDelete: true,
 		PermissionContentRead: true, PermissionContentWrite: true, PermissionContentDelete: true,
@@ -87,13 +94,26 @@ func IsAssignableRole(role string) bool {
 	return false
 }
 
-func PermissionsForRole(role string) []string {
-	if role == RoleSuperAdmin {
-		out := make([]string, len(AllPermissions))
-		copy(out, AllPermissions)
-		return out
+// rolePermissions is the live, mutable matrix. It starts as a copy of the
+// defaults and is overwritten by LoadRolePermissions / SetRolePermissions.
+var rolePermissions = clonePermMatrix(defaultRolePermissions)
+
+func clonePermMatrix(src map[string]map[string]bool) map[string]map[string]bool {
+	out := make(map[string]map[string]bool, len(src))
+	for role, perms := range src {
+		inner := make(map[string]bool, len(perms))
+		for p, v := range perms {
+			inner[p] = v
+		}
+		out[role] = inner
 	}
-	perms := rolePermissions[role]
+	return out
+}
+
+// DefaultPermissionsForRole returns the built-in baseline permissions for a role,
+// used to seed the database on first boot.
+func DefaultPermissionsForRole(role string) []string {
+	perms := defaultRolePermissions[role]
 	out := make([]string, 0, len(perms))
 	for _, permission := range AllPermissions {
 		if perms[permission] {
@@ -103,11 +123,53 @@ func PermissionsForRole(role string) []string {
 	return out
 }
 
+// SetRolePermissions replaces the in-memory permissions for a role. super_admin
+// is never narrowed — it always retains full access.
+func SetRolePermissions(role string, permissions []string) {
+	if role == RoleSuperAdmin {
+		return
+	}
+	set := make(map[string]bool, len(permissions))
+	valid := make(map[string]bool, len(AllPermissions))
+	for _, p := range AllPermissions {
+		valid[p] = true
+	}
+	for _, p := range permissions {
+		if valid[p] {
+			set[p] = true
+		}
+	}
+	permMu.Lock()
+	rolePermissions[role] = set
+	permMu.Unlock()
+}
+
+func PermissionsForRole(role string) []string {
+	if role == RoleSuperAdmin {
+		out := make([]string, len(AllPermissions))
+		copy(out, AllPermissions)
+		return out
+	}
+	permMu.RLock()
+	perms := rolePermissions[role]
+	out := make([]string, 0, len(perms))
+	for _, permission := range AllPermissions {
+		if perms[permission] {
+			out = append(out, permission)
+		}
+	}
+	permMu.RUnlock()
+	return out
+}
+
 func HasPermission(role, permission string) bool {
 	if role == RoleSuperAdmin {
 		return true
 	}
-	return rolePermissions[role][permission]
+	permMu.RLock()
+	allowed := rolePermissions[role][permission]
+	permMu.RUnlock()
+	return allowed
 }
 
 func RequirePermission(permission string) gin.HandlerFunc {

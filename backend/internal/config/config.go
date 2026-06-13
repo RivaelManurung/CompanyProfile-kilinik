@@ -18,6 +18,7 @@ type Config struct {
 	AdminEmail    string
 	AdminPassword string
 	Env           string
+	UploadDir     string
 }
 
 // Load reads .env (if present) and environment variables into a Config.
@@ -36,6 +37,7 @@ func Load() *Config {
 		AdminEmail:    getEnv("ADMIN_EMAIL", "admin@sehatnusantara.id"),
 		AdminPassword: getEnv("ADMIN_PASSWORD", "Admin#12345"),
 		Env:           getEnv("APP_ENV", "development"),
+		UploadDir:     getEnv("UPLOAD_DIR", "uploads"),
 	}
 	cfg.validate()
 	return cfg
