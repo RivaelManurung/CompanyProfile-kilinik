@@ -16,7 +16,7 @@ export function PageBanner({
   crumb: string;
 }) {
   return (
-    <section className="relative overflow-hidden pt-32 pb-16 lg:pt-40 lg:pb-20">
+    <section className="relative overflow-hidden pt-24 pb-16 lg:pt-28 lg:pb-20">
       <div className="absolute inset-0 -z-10 bg-gradient-to-b from-primary-50/80 via-white to-white" />
       <div className="bg-grid absolute inset-0 -z-10 opacity-60 [mask-image:radial-gradient(ellipse_at_top,#000_20%,transparent_70%)]" />
       <div className="animate-blob absolute -right-20 -top-10 -z-10 h-72 w-72 bg-accent-200/40 blur-3xl" />
