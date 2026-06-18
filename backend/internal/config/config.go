@@ -46,17 +46,41 @@ func Load() *Config {
 func (c *Config) IsProd() bool { return c.Env == "production" }
 
 func (c *Config) validate() {
+	// Always warn when insecure development defaults are detected, regardless
+	// of environment, so a misconfigured staging or production deploy is
+	// surfaced immediately at startup rather than silently running with weak
+	// credentials.
+	insecureJWT := c.JWTSecret == "change-me-in-production-please-32chars" ||
+		c.JWTSecret == "dev-super-secret-change-me-please-32chars-min" ||
+		len(c.JWTSecret) < 32
+	insecurePassword := c.AdminPassword == "Admin#12345" || len(c.AdminPassword) < 12
+	insecureDB := strings.Contains(c.DatabaseURL, "ksn_secret_dev")
+
+	if insecureJWT {
+		log.Println("[WARN] config: JWT_SECRET is using a weak/default value — set a strong random secret before going to production")
+	}
+	if insecurePassword {
+		log.Println("[WARN] config: ADMIN_PASSWORD is using the default value — change it before going to production")
+	}
+	if insecureDB {
+		log.Println("[WARN] config: DATABASE_URL contains a development credential — replace it before going to production")
+	}
+
+	// In production, weak credentials are fatal.
 	if !c.IsProd() {
 		return
 	}
-	if c.JWTSecret == "change-me-in-production-please-32chars" || len(c.JWTSecret) < 32 {
-		log.Fatal("config: JWT_SECRET must be set to a strong value in production")
+	if insecureJWT {
+		log.Fatal("config: JWT_SECRET must be set to a strong random value (≥32 chars) in production")
 	}
-	if c.AdminPassword == "Admin#12345" || len(c.AdminPassword) < 12 {
-		log.Fatal("config: ADMIN_PASSWORD must be changed in production")
+	if insecurePassword {
+		log.Fatal("config: ADMIN_PASSWORD must be changed from the default in production")
 	}
-	if strings.Contains(c.DatabaseURL, "ksn_secret_dev") || strings.Contains(c.DatabaseURL, "localhost") {
-		log.Fatal("config: DATABASE_URL must not use development defaults in production")
+	if insecureDB {
+		log.Fatal("config: DATABASE_URL must not use development credentials in production")
+	}
+	if strings.Contains(c.DatabaseURL, "localhost") {
+		log.Fatal("config: DATABASE_URL must not point to localhost in production")
 	}
 	for _, origin := range c.CORSOrigins {
 		if origin == "*" || strings.Contains(origin, "localhost") || strings.HasPrefix(origin, "http://") {

@@ -9,6 +9,11 @@ import { Button } from "@/components/ui/brand-button";
 import { usePatientAuth } from "@/components/patient/PatientAuthProvider";
 import { PatientApiError } from "@/lib/patient/api";
 
+function safeRedirect(value: string | null, fallback = "/akun"): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return fallback;
+  return value;
+}
+
 const inputClass =
   "h-12 w-full rounded-xl border border-ink-200 bg-white px-4 text-sm text-ink-900 outline-none transition-colors placeholder:text-ink-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/15";
 
@@ -16,7 +21,7 @@ function RegisterForm() {
   const { register } = usePatientAuth();
   const router = useRouter();
   const params = useSearchParams();
-  const redirect = params.get("redirect") || "/akun";
+  const redirect = safeRedirect(params.get("redirect"));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

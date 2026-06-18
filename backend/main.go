@@ -1,8 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"sehatnusantara/api/internal/config"
 	"sehatnusantara/api/internal/database"
@@ -34,8 +40,34 @@ func main() {
 	}
 
 	r := router.Setup(db, cfg)
-	log.Printf("Sehat Nusantara API listening on http://localhost:%s", cfg.Port)
-	if err := r.Run(":" + cfg.Port); err != nil {
-		log.Fatalf("fatal: server error: %v", err)
+
+	srv := &http.Server{
+		Addr:         ":" + cfg.Port,
+		Handler:      r,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
+
+	// Start server in a goroutine so we can listen for shutdown signals.
+	go func() {
+		log.Printf("Sehat Nusantara API listening on http://localhost:%s", cfg.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("fatal: server error: %v", err)
+		}
+	}()
+
+	// Wait for SIGINT or SIGTERM (container stop, systemd, Ctrl-C).
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("shutdown signal received — draining in-flight requests…")
+
+	// Give in-flight requests 30 s to complete before forcefully closing.
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("fatal: graceful shutdown failed: %v", err)
+	}
+	log.Println("server stopped cleanly")
 }

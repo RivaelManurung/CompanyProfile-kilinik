@@ -129,24 +129,10 @@ export function CrudManager<T extends { id: number }>({
     }
   }, [api, params]);
 
+  // Single effect: delegates to `load` so there is no duplicate fetch on mount.
   useEffect(() => {
-    const controller = new AbortController();
-    api.list(params)
-      .then((res) => {
-        if (!controller.signal.aborted) {
-          setRows(res.data);
-          setMeta(res.meta);
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (!controller.signal.aborted) {
-          setError(err instanceof ApiError ? err.message : "Gagal memuat data");
-          setLoading(false);
-        }
-      });
-    return () => { controller.abort(); };
-  }, [api, params]);
+    load();
+  }, [load]);
 
   function updateParams(next: Partial<ListParams>) {
     const sp = new URLSearchParams(searchParams.toString());

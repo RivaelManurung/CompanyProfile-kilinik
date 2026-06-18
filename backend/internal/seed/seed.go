@@ -3,6 +3,7 @@ package seed
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"sehatnusantara/api/internal/auth"
@@ -58,7 +59,13 @@ func seedAdmin(db *gorm.DB, cfg *config.Config) error {
 }
 
 func seedStaff(db *gorm.DB) {
-	hash, err := auth.HashPassword("StaffDemo#12345")
+	// Demo-only password: never called in production (guarded by Run's prod check in main).
+	// Use SEED_STAFF_PASSWORD env var if set, otherwise fall back to a safe demo default.
+	staffPwd := os.Getenv("SEED_STAFF_PASSWORD")
+	if staffPwd == "" {
+		staffPwd = "StaffDemo#12345"
+	}
+	hash, err := auth.HashPassword(staffPwd)
 	if err != nil {
 		return
 	}

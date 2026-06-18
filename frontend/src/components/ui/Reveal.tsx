@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, type Variants } from "framer-motion";
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 type Direction = "up" | "down" | "left" | "right" | "none";
@@ -31,16 +31,21 @@ export function Reveal({
   once?: boolean;
   as?: "div" | "section" | "li" | "span" | "article";
 }) {
+  const prefersReducedMotion = useReducedMotion();
   const { x, y } = dirMap[direction];
   const MotionTag = motion[as] as typeof motion.div;
 
   return (
     <MotionTag
       className={className}
-      initial={{ opacity: 0, x, y }}
+      initial={prefersReducedMotion ? { opacity: 1, x: 0, y: 0 } : { opacity: 0, x, y }}
       whileInView={{ opacity: 1, x: 0, y: 0 }}
       viewport={{ once, margin: "-80px" }}
-      transition={{ duration, delay, ease: [0.22, 1, 0.36, 1] }}
+      transition={
+        prefersReducedMotion
+          ? { duration: 0 }
+          : { duration, delay, ease: [0.22, 1, 0.36, 1] }
+      }
     >
       {children}
     </MotionTag>
@@ -52,9 +57,19 @@ const containerVariants: Variants = {
   show: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } },
 };
 
+const containerReducedVariants: Variants = {
+  hidden: {},
+  show: {},
+};
+
 const itemVariants: Variants = {
   hidden: { opacity: 0, y: 24 },
   show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } },
+};
+
+const itemReducedVariants: Variants = {
+  hidden: { opacity: 1, y: 0 },
+  show: { opacity: 1, y: 0, transition: { duration: 0 } },
 };
 
 export function Stagger({
@@ -66,10 +81,12 @@ export function Stagger({
   className?: string;
   once?: boolean;
 }) {
+  const prefersReducedMotion = useReducedMotion();
+
   return (
     <motion.div
       className={className}
-      variants={containerVariants}
+      variants={prefersReducedMotion ? containerReducedVariants : containerVariants}
       initial="hidden"
       whileInView="show"
       viewport={{ once, margin: "-60px" }}
@@ -86,8 +103,13 @@ export function StaggerItem({
   children: React.ReactNode;
   className?: string;
 }) {
+  const prefersReducedMotion = useReducedMotion();
+
   return (
-    <motion.div variants={itemVariants} className={cn(className)}>
+    <motion.div
+      variants={prefersReducedMotion ? itemReducedVariants : itemVariants}
+      className={cn(className)}
+    >
       {children}
     </motion.div>
   );

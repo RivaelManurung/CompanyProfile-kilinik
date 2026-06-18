@@ -45,9 +45,10 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
     }
   }, []);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  // `refresh` is a stable useCallback with no deps. Calling it here triggers
+  // the initial session load on mount; the same function is reused by login/logout.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { refresh(); }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     setPatient(await patientApi.login({ email, password }));

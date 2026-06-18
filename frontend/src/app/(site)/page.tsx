@@ -14,6 +14,28 @@ import {
   getLocations,
   getArticles,
 } from "@/lib/public/api";
+import { site } from "@/lib/site";
+
+/** MedicalClinic structured data (JSON-LD) for Google rich results.
+ *  https://schema.org/MedicalClinic */
+const clinicJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "MedicalClinic",
+  name: site.name,
+  url: site.url,
+  telephone: site.phone,
+  email: site.email,
+  description: site.description,
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: site.address.line1,
+    addressLocality: "Jakarta Pusat",
+    postalCode: "10350",
+    addressCountry: "ID",
+  },
+  openingHours: "Mo-Sa 08:00-20:00",
+  sameAs: [site.instagram],
+};
 
 export default async function Home() {
   // Live content managed from the admin dashboard, fetched in parallel.
@@ -26,6 +48,11 @@ export default async function Home() {
 
   return (
     <>
+      {/* Structured data for Google rich results */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(clinicJsonLd) }}
+      />
       <Hero />
       <PartnersMarquee />
       <Services services={services} />

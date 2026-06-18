@@ -65,6 +65,7 @@ export function ContactForm() {
               1×24 jam untuk konfirmasi.
             </p>
             <button
+              type="button"
               onClick={() => setStatus("idle")}
               className="mt-6 text-sm font-semibold text-primary-600 hover:text-primary-700"
             >
@@ -81,21 +82,21 @@ export function ContactForm() {
           >
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-ink-700">Nama lengkap</label>
-                <input required name="name" placeholder="Nama Anda" className={fieldClass} />
+                <label htmlFor="contact-name" className="mb-1.5 block text-sm font-medium text-ink-700">Nama lengkap</label>
+                <input id="contact-name" required name="name" autoComplete="name" placeholder="Nama Anda" className={fieldClass} />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-ink-700">No. WhatsApp</label>
-                <input required name="phone" placeholder="08xx xxxx xxxx" className={fieldClass} />
+                <label htmlFor="contact-phone" className="mb-1.5 block text-sm font-medium text-ink-700">No. WhatsApp</label>
+                <input id="contact-phone" required name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="08xx xxxx xxxx" className={fieldClass} />
               </div>
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-ink-700">Email</label>
-              <input required type="email" name="email" placeholder="email@contoh.com" className={fieldClass} />
+              <label htmlFor="contact-email" className="mb-1.5 block text-sm font-medium text-ink-700">Email</label>
+              <input id="contact-email" required type="email" name="email" autoComplete="email" placeholder="email@contoh.com" className={fieldClass} />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-ink-700">Layanan yang diminati</label>
-              <select name="service" className={fieldClass} defaultValue="">
+              <label htmlFor="contact-service" className="mb-1.5 block text-sm font-medium text-ink-700">Layanan yang diminati</label>
+              <select id="contact-service" name="service" className={fieldClass} defaultValue="">
                 <option value="" disabled>Pilih layanan</option>
                 {services.map((s) => (
                   <option key={s.slug} value={s.title}>{s.title}</option>
@@ -104,8 +105,9 @@ export function ContactForm() {
               </select>
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-ink-700">Pesan</label>
+              <label htmlFor="contact-message" className="mb-1.5 block text-sm font-medium text-ink-700">Pesan</label>
               <textarea
+                id="contact-message"
                 name="message"
                 rows={4}
                 placeholder="Ceritakan kebutuhan Anda…"
@@ -113,11 +115,13 @@ export function ContactForm() {
               />
             </div>
 
-            {error && (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                {error}
-              </div>
-            )}
+            <div role="alert" aria-live="assertive" aria-atomic="true">
+              {error && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
+            </div>
 
             <button
               type="submit"

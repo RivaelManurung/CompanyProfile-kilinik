@@ -179,7 +179,10 @@ func (h *Handler) UpdateAppointment(c *gin.Context) {
 		updates["message"] = req.Message
 	}
 	if len(updates) > 0 {
-		h.DB.Model(&appt).Updates(updates)
+		if err := h.DB.Model(&appt).Updates(updates).Error; err != nil {
+			fail(c, http.StatusInternalServerError, "DB_ERROR", "Gagal memperbarui janji temu")
+			return
+		}
 	}
 	if req.Status != "" {
 		h.audit(c, "status_change", "appointments", c.Param("id"))

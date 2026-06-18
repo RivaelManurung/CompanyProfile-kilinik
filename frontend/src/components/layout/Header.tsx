@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useScroll, useMotionValueEvent } from "framer-motion";
@@ -18,6 +18,8 @@ export function Header() {
   const pathname = usePathname();
   const { patient } = usePatientAuth();
   const { scrollY } = useScroll();
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     setScrolled(latest > 16);
@@ -28,6 +30,22 @@ export function Header() {
     return () => {
       document.body.style.overflow = "";
     };
+  }, [open]);
+
+  // Focus first drawer link on open; handle Escape to close.
+  useEffect(() => {
+    if (!open) return;
+    const firstLink = drawerRef.current?.querySelector<HTMLAnchorElement>("a");
+    firstLink?.focus();
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setOpen(false);
+        toggleRef.current?.focus();
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
   return (
@@ -50,13 +68,14 @@ export function Header() {
             <Logo />
           </Link>
 
-          <nav className="hidden items-center gap-1 lg:flex">
+          <nav aria-label="Navigasi utama" className="hidden items-center gap-1 lg:flex">
             {nav.map((item) => {
               const active = pathname === item.href || pathname.startsWith(item.href + "/");
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
                     "relative rounded-full px-4 py-2 text-sm font-medium transition-colors",
                     active ? "text-primary-700" : "text-ink-600 hover:text-primary-700",
@@ -99,11 +118,13 @@ export function Header() {
           </div>
 
           <button
+            ref={toggleRef}
             type="button"
             onClick={() => setOpen((v) => !v)}
             className="inline-flex h-11 w-11 items-center justify-center rounded-full text-ink-800 transition-colors hover:bg-ink-100 lg:hidden"
             aria-label={open ? "Tutup menu" : "Buka menu"}
             aria-expanded={open}
+            aria-controls="mobile-nav"
           >
             {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
@@ -121,6 +142,11 @@ export function Header() {
             onClick={() => setOpen(false)}
           >
             <motion.nav
+              ref={drawerRef}
+              id="mobile-nav"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Menu navigasi utama"
               initial={{ y: -16, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -16, opacity: 0 }}
@@ -140,6 +166,7 @@ export function Header() {
                     >
                       <Link
                         href={item.href}
+                        aria-current={active ? "page" : undefined}
                         className={cn(
                           "block rounded-2xl px-4 py-3 text-base font-medium transition-colors",
                           active ? "bg-primary-50 text-primary-700" : "text-ink-700 hover:bg-ink-50",

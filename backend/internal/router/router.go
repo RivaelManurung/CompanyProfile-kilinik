@@ -2,6 +2,7 @@ package router
 
 import (
 	"os"
+	"strings"
 	"time"
 
 	"sehatnusantara/api/internal/auth"
@@ -20,7 +21,35 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	}
 
 	r := gin.New()
+
+	// In production, trust only known proxy CIDRs so ClientIP() cannot be
+	// spoofed via X-Forwarded-For, which would bypass the IP-keyed rate limiter.
+	// Set TRUSTED_PROXIES to a comma-separated list of CIDR ranges (e.g.
+	// "10.0.0.0/8,172.16.0.0/12") for load-balanced deployments.
+	if cfg.IsProd() {
+		trustedProxies := splitTrustedProxies(os.Getenv("TRUSTED_PROXIES"))
+		if len(trustedProxies) > 0 {
+			_ = r.SetTrustedProxies(trustedProxies)
+		} else {
+			_ = r.SetTrustedProxies(nil) // no proxy trusted; use direct RemoteAddr
+		}
+	} else {
+		_ = r.SetTrustedProxies(nil)
+	}
+
 	r.Use(gin.Logger(), gin.Recovery())
+
+	// Security headers on every response.
+	r.Use(func(c *gin.Context) {
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("X-Frame-Options", "DENY")
+		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
+		c.Header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+		if cfg.IsProd() {
+			c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+		}
+		c.Next()
+	})
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.CORSOrigins,
@@ -126,4 +155,20 @@ func registerCRUD(g *gin.RouterGroup, name, readPermission, writePermission, del
 	g.GET("/"+name+"/:id", auth.RequirePermission(readPermission), get)
 	g.PUT("/"+name+"/:id", auth.RequirePermission(writePermission), update)
 	g.DELETE("/"+name+"/:id", auth.RequirePermission(deletePermission), del)
+}
+
+// splitTrustedProxies parses a comma-separated list of CIDR / IP strings from the
+// TRUSTED_PROXIES env var into a slice suitable for gin.SetTrustedProxies.
+func splitTrustedProxies(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if t := strings.TrimSpace(p); t != "" {
+			out = append(out, t)
+		}
+	}
+	return out
 }

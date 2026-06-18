@@ -141,10 +141,14 @@ export function BookingWizard({
     return filtered.length ? filtered : doctors;
   }, [service, doctors]);
 
-  // Changing the service clears a doctor that may no longer be eligible.
-  useEffect(() => {
+  function handleServiceChange(slug: string) {
+    setServiceSlug(slug);
+    // Clear downstream selections in the event handler, not an effect.
     setDoctorId("");
-  }, [serviceSlug]);
+    setDate("");
+    setTime("");
+    setSlots([]);
+  }
 
   const serviceOptions: ComboOption[] = useMemo(
     () =>
@@ -189,12 +193,12 @@ export function BookingWizard({
     [],
   );
 
-  // Reset downstream choices when the doctor changes.
-  useEffect(() => {
+  function handleDoctorChange(id: string) {
+    setDoctorId(id);
     setDate("");
     setTime("");
     setSlots([]);
-  }, [doctorId]);
+  }
 
   useEffect(() => {
     if (!doctor || !date) return;
@@ -297,7 +301,7 @@ export function BookingWizard({
           <Field label="Layanan">
             <Combobox
               value={serviceSlug}
-              onChange={setServiceSlug}
+              onChange={handleServiceChange}
               options={serviceOptions}
               placeholder="Pilih layanan…"
               searchable
@@ -312,7 +316,7 @@ export function BookingWizard({
           >
             <Combobox
               value={doctorId}
-              onChange={setDoctorId}
+              onChange={handleDoctorChange}
               options={doctorOptions}
               placeholder="Pilih dokter…"
               disabledPlaceholder="Pilih layanan terlebih dahulu"
@@ -334,6 +338,8 @@ export function BookingWizard({
                       key={value}
                       type="button"
                       onClick={() => setDate(value)}
+                      aria-label={format(d, "EEEE, d MMMM yyyy", { locale: idLocale })}
+                      aria-pressed={selected}
                       className={cn(
                         "flex shrink-0 flex-col items-center rounded-xl border px-3.5 py-2.5 transition-colors",
                         selected
@@ -341,11 +347,11 @@ export function BookingWizard({
                           : "border-ink-100 bg-white text-ink-700 hover:border-primary-300",
                       )}
                     >
-                      <span className={cn("text-[0.65rem] font-semibold uppercase", selected ? "text-white/80" : "text-ink-400")}>
+                      <span aria-hidden="true" className={cn("text-[0.65rem] font-semibold uppercase", selected ? "text-white/80" : "text-ink-400")}>
                         {format(d, "EEE", { locale: idLocale })}
                       </span>
-                      <span className="mt-0.5 text-base font-bold tabular-nums">{format(d, "d")}</span>
-                      <span className={cn("text-[0.65rem]", selected ? "text-white/80" : "text-ink-400")}>
+                      <span aria-hidden="true" className="mt-0.5 text-base font-bold tabular-nums">{format(d, "d")}</span>
+                      <span aria-hidden="true" className={cn("text-[0.65rem]", selected ? "text-white/80" : "text-ink-400")}>
                         {format(d, "MMM", { locale: idLocale })}
                       </span>
                     </button>
@@ -374,6 +380,8 @@ export function BookingWizard({
                       type="button"
                       disabled={!s.available}
                       onClick={() => setTime(s.time)}
+                      aria-label={`${s.time} WIB${!s.available ? ", tidak tersedia" : ""}`}
+                      aria-pressed={s.available && time === s.time}
                       className={cn(
                         "rounded-lg border py-2 text-sm font-semibold tabular-nums transition-colors",
                         !s.available && "cursor-not-allowed border-ink-100 bg-ink-50 text-ink-300 line-through",

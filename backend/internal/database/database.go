@@ -28,6 +28,8 @@ func Connect(dsn string) (*gorm.DB, error) {
 	sqlDB.SetMaxOpenConns(20)
 	sqlDB.SetMaxIdleConns(5)
 	sqlDB.SetConnMaxLifetime(time.Hour)
+	// Prevent stale connections after a load-balancer TCP timeout.
+	sqlDB.SetConnMaxIdleTime(5 * time.Minute)
 
 	if err := sqlDB.Ping(); err != nil {
 		return nil, fmt.Errorf("ping db: %w", err)

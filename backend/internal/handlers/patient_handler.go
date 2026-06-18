@@ -150,9 +150,12 @@ func (h *Handler) PatientUpdateProfile(c *gin.Context) {
 // PatientListAppointments returns the authenticated patient's own bookings.
 func (h *Handler) PatientListAppointments(c *gin.Context) {
 	var items []models.Appointment
-	h.DB.Where("patient_user_id = ?", auth.PatientID(c)).
+	if err := h.DB.Where("patient_user_id = ?", auth.PatientID(c)).
 		Order("appointment_date DESC, appointment_time DESC, id DESC").
-		Find(&items)
+		Find(&items).Error; err != nil {
+		fail(c, http.StatusInternalServerError, "DB_ERROR", "Gagal memuat data janji temu")
+		return
+	}
 	ok(c, items)
 }
 
