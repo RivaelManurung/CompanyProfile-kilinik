@@ -9,12 +9,12 @@ import (
 
 func TestSlugify(t *testing.T) {
 	cases := map[string]string{
-		"Hello World":              "hello-world",
-		"  Trim  Me  ":             "trim-me",
-		"Spesial!! Chàrs??":        "spesial-ch-rs",
-		"IV Therapy untuk GERD":    "iv-therapy-untuk-gerd",
-		"---already---":            "already",
-		"":                        "",
+		"Hello World":           "hello-world",
+		"  Trim  Me  ":          "trim-me",
+		"Spesial!! Chàrs??":     "spesial-ch-rs",
+		"IV Therapy untuk GERD": "iv-therapy-untuk-gerd",
+		"---already---":         "already",
+		"":                      "",
 	}
 	for in, want := range cases {
 		if got := slugify(in); got != want {

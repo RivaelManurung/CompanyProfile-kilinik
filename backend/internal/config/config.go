@@ -19,6 +19,15 @@ type Config struct {
 	AdminPassword string
 	Env           string
 	UploadDir     string
+
+	// Notifications. WAProvider selects the WhatsApp gateway ("fonnte" today;
+	// empty = log-only, no messages sent). WAToken is the provider API token.
+	WAProvider string
+	WAToken    string
+
+	// RedisURL, when set, makes the rate limiter + login lockout shared across
+	// instances (e.g. "redis://localhost:6379/0"). Empty = process-local limiter.
+	RedisURL string
 }
 
 // Load reads .env (if present) and environment variables into a Config.
@@ -38,6 +47,9 @@ func Load() *Config {
 		AdminPassword: getEnv("ADMIN_PASSWORD", "Admin#12345"),
 		Env:           getEnv("APP_ENV", "development"),
 		UploadDir:     getEnv("UPLOAD_DIR", "uploads"),
+		WAProvider:    strings.ToLower(getEnv("WA_PROVIDER", "")),
+		WAToken:       getEnv("WA_TOKEN", ""),
+		RedisURL:      getEnv("REDIS_URL", ""),
 	}
 	cfg.validate()
 	return cfg

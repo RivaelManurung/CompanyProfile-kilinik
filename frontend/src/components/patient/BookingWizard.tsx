@@ -15,6 +15,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/brand-button";
+import { fieldControlClass } from "@/components/ui/Field";
 import { Combobox, type ComboOption } from "@/components/ui/Combobox";
 import { ServiceIcon } from "@/lib/public/icons";
 import { cn } from "@/lib/utils";
@@ -67,6 +68,50 @@ function Field({
       </label>
       {children}
     </div>
+  );
+}
+
+function StepProgress({ current }: { current: number }) {
+  const steps = ["Layanan", "Dokter", "Jadwal", "Konfirmasi"];
+  return (
+    <ol className="mb-6 flex items-center gap-1.5" aria-label="Langkah pemesanan">
+      {steps.map((label, i) => {
+        const done = i < current;
+        const active = i === current;
+        return (
+          <li key={label} className="flex flex-1 items-center gap-1.5">
+            <span
+              aria-current={active ? "step" : undefined}
+              className={cn(
+                "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors",
+                done && "bg-primary-600 text-white",
+                active && "bg-primary-100 text-primary-700 ring-2 ring-primary-600",
+                !done && !active && "bg-ink-100 text-ink-400",
+              )}
+            >
+              {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
+            </span>
+            <span
+              className={cn(
+                "hidden text-xs font-semibold sm:inline",
+                active ? "text-ink-900" : "text-ink-400",
+              )}
+            >
+              {label}
+            </span>
+            {i < steps.length - 1 && (
+              <span
+                className={cn(
+                  "h-px flex-1 transition-colors",
+                  done ? "bg-primary-300" : "bg-ink-100",
+                )}
+                aria-hidden
+              />
+            )}
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -202,13 +247,23 @@ export function BookingWizard({
 
   useEffect(() => {
     if (!doctor || !date) return;
-    setSlotsLoading(true);
-    setTime("");
-    patientApi
-      .availability(doctor.id, date)
-      .then((r) => setSlots(r.slots))
-      .catch(() => setSlots([]))
-      .finally(() => setSlotsLoading(false));
+    let active = true;
+    const load = async () => {
+      setSlotsLoading(true);
+      setTime("");
+      try {
+        const r = await patientApi.availability(doctor.id, date);
+        if (active) setSlots(r.slots);
+      } catch {
+        if (active) setSlots([]);
+      } finally {
+        if (active) setSlotsLoading(false);
+      }
+    };
+    load();
+    return () => {
+      active = false;
+    };
   }, [doctor, date]);
 
   if (loading) {
@@ -286,12 +341,14 @@ export function BookingWizard({
   }
 
   const canSubmit = Boolean(service && doctor && date && time) && !submitting;
+  const currentStep = !service ? 0 : !doctor ? 1 : !(date && time) ? 2 : 3;
 
   return (
     <div className="mx-auto max-w-2xl">
       <div className="rounded-3xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
+        <StepProgress current={currentStep} />
         {error && (
-          <p className="mb-5 rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm font-medium text-danger">
+          <p role="alert" className="mb-5 rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm font-medium text-danger">
             {error}
           </p>
         )}
@@ -328,8 +385,8 @@ export function BookingWizard({
 
           {/* Date — appears once a doctor is chosen */}
           {doctor && (
-            <Field label="Tanggal">
-              <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Field label="Tanggal" hint="(geser untuk tanggal lain)">
+              <div className="mask-fade-x flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {days.map((d) => {
                   const value = format(d, "yyyy-MM-dd");
                   const selected = value === date;
@@ -341,7 +398,7 @@ export function BookingWizard({
                       aria-label={format(d, "EEEE, d MMMM yyyy", { locale: idLocale })}
                       aria-pressed={selected}
                       className={cn(
-                        "flex shrink-0 flex-col items-center rounded-xl border px-3.5 py-2.5 transition-colors",
+                        "flex shrink-0 snap-start flex-col items-center rounded-xl border px-3.5 py-2.5 transition-colors",
                         selected
                           ? "border-primary-600 bg-primary-600 text-white"
                           : "border-ink-100 bg-white text-ink-700 hover:border-primary-300",
@@ -404,7 +461,7 @@ export function BookingWizard({
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Keluhan singkat atau permintaan khusus…"
-              className="w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm text-ink-900 outline-none transition-colors placeholder:text-ink-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/15"
+              className={cn("resize-none py-3", fieldControlClass)}
             />
           </Field>
         </div>

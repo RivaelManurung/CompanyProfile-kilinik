@@ -2,12 +2,18 @@ import type {
   Admin,
   AdminSession,
   Appointment,
+  AppointmentStatus,
+  AvailabilityResponse,
   Article,
   AuditLog,
   ClinicLocation,
   ListEnvelope,
   Doctor,
+  DoctorSchedule,
+  DoctorScheduleWindow,
   ListParams,
+  Patient,
+  PatientDetail,
   Promotion,
   RolesResponse,
   Service,
@@ -106,9 +112,47 @@ export const statsApi = {
 
 // ---- Appointments ----
 type AppointmentInput = Partial<Appointment> & Record<string, unknown>;
+
+/** Body accepted by the appointment update endpoint (status changes, reschedule, reassign). */
+export interface AppointmentUpdateInput {
+  status?: AppointmentStatus;
+  cancelReason?: string;
+  doctorId?: number;
+  appointmentDate?: string;
+  appointmentTime?: string;
+  service?: string;
+  doctor?: string;
+}
+
+export interface AppointmentListParams {
+  status?: string;
+  q?: string;
+  page?: number;
+  limit?: number;
+  from?: string;
+  to?: string;
+  doctorId?: number;
+  sort?: string;
+  direction?: "asc" | "desc";
+}
+
+function appointmentQuery(params: AppointmentListParams): string {
+  const search = new URLSearchParams();
+  search.set("page", String(params.page ?? 1));
+  search.set("limit", String(params.limit ?? 20));
+  if (params.q) search.set("q", params.q);
+  if (params.status) search.set("status", params.status);
+  if (params.from) search.set("from", params.from);
+  if (params.to) search.set("to", params.to);
+  if (params.doctorId) search.set("doctorId", String(params.doctorId));
+  if (params.sort) search.set("sort", params.sort);
+  if (params.direction) search.set("direction", params.direction);
+  return search.toString();
+}
+
 export const appointmentsApi = {
-  list: (params: { status?: string; q?: string; page?: number; limit?: number } = {}) => {
-    return request<ListEnvelope<Appointment>>(`/admin/appointments?${qs(params)}`);
+  list: (params: AppointmentListParams = {}) => {
+    return request<ListEnvelope<Appointment>>(`/admin/appointments?${appointmentQuery(params)}`);
   },
   get: (id: number) => request<Envelope<Appointment>>(`/admin/appointments/${id}`).then((r) => r.data),
   create: (body: AppointmentInput) =>
@@ -116,12 +160,17 @@ export const appointmentsApi = {
       method: "POST",
       body: JSON.stringify(body),
     }).then((r) => r.data),
-  update: (id: number, body: Partial<Appointment>) =>
+  update: (id: number, body: AppointmentUpdateInput) =>
     request<Envelope<Appointment>>(`/admin/appointments/${id}`, {
       method: "PATCH",
       body: JSON.stringify(body),
     }).then((r) => r.data),
   remove: (id: number) => request<unknown>(`/admin/appointments/${id}`, { method: "DELETE" }),
+  /** Public slot availability for a doctor on a given date (no auth required). */
+  availability: (doctorId: number, date: string) => {
+    const search = new URLSearchParams({ doctorId: String(doctorId), date });
+    return request<Envelope<AvailabilityResponse>>(`/public/availability?${search.toString()}`).then((r) => r.data);
+  },
 };
 
 // ---- Generic resource factory ----
@@ -137,11 +186,45 @@ function resource<T, Input>(name: string) {
   };
 }
 
-export const doctorsApi = resource<Doctor, Partial<Doctor>>("doctors");
+const doctorsResource = resource<Doctor, Partial<Doctor>>("doctors");
+
+/** Body accepted by the doctor schedule endpoint. `slotMinutes` omitted = keep existing. */
+export interface DoctorScheduleInput {
+  slotMinutes?: number;
+  windows: DoctorScheduleWindow[];
+}
+
+export const doctorsApi = {
+  ...doctorsResource,
+  /** Weekly working windows + slot length for a doctor. */
+  getSchedule: (id: number) =>
+    request<Envelope<DoctorSchedule>>(`/admin/doctors/${id}/schedule`).then((r) => r.data),
+  /** Replace the doctor's entire weekly schedule (PUT replaces all windows). */
+  updateSchedule: (id: number, body: DoctorScheduleInput) =>
+    request<Envelope<DoctorSchedule>>(`/admin/doctors/${id}/schedule`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }).then((r) => r.data),
+};
+
+// ---- Patients (read-only admin surface) ----
+export const patientsApi = {
+  list: (params: ListParams = {}) => request<ListEnvelope<Patient>>(`/admin/patients?${qs(params)}`),
+  get: (id: number) => request<Envelope<PatientDetail>>(`/admin/patients/${id}`).then((r) => r.data),
+};
+
 export const articlesApi = resource<Article, Partial<Article>>("articles");
 export const servicesApi = resource<Service, Partial<Service>>("services");
 export const locationsApi = resource<ClinicLocation, Partial<ClinicLocation>>("locations");
-export const promotionsApi = resource<Promotion, Partial<Promotion>>("promotions");
+export const promotionsApi = {
+  ...resource<Promotion, Partial<Promotion>>("promotions"),
+  // Promotions support an extra server-side campaign-type filter.
+  list: (params: ListParams & { campaign?: string } = {}) => {
+    const query = qs(params);
+    const extra = params.campaign ? `&campaign=${encodeURIComponent(params.campaign)}` : "";
+    return request<ListEnvelope<Promotion>>(`/admin/promotions?${query}${extra}`);
+  },
+};
 export const usersApi = resource<Admin, Record<string, unknown>>("users");
 
 export const auditApi = {
@@ -201,8 +284,31 @@ export const optionsApi = {
     const res = await doctorsApi.list({ limit: 100, sort: "name", direction: "asc" });
     return res.data.map((d) => ({ value: d.name, label: `${d.name}${d.specialty ? ` — ${d.specialty}` : ""}` }));
   },
+  /** Doctor options keyed by id (string value) — use when the backend expects `doctorId`. */
+  async doctorIds(): Promise<SelectOption[]> {
+    const res = await doctorsApi.list({ limit: 100, sort: "name", direction: "asc" });
+    return res.data.map((d) => ({
+      value: String(d.id),
+      label: `${d.name}${d.specialty ? ` — ${d.specialty}` : ""}`,
+    }));
+  },
   async services(): Promise<SelectOption[]> {
     const res = await servicesApi.list({ limit: 100, sort: "order_index", direction: "asc" });
     return res.data.map((s) => ({ value: s.title, label: s.title }));
   },
 };
+
+/** Map known appointment ApiError codes to friendly Indonesian messages. */
+export function appointmentErrorMessage(err: unknown, fallback = "Terjadi kesalahan"): string {
+  if (err instanceof ApiError) {
+    switch (err.code) {
+      case "SLOT_TAKEN":
+        return "Slot waktu tersebut sudah terisi. Silakan pilih waktu lain.";
+      case "INVALID_DOCTOR":
+        return "Dokter yang dipilih tidak valid.";
+      default:
+        return err.message || fallback;
+    }
+  }
+  return fallback;
+}

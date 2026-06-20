@@ -7,9 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"sehatnusantara/api/internal/models"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 const (
@@ -100,7 +103,10 @@ func ClearCookie(c *gin.Context, secure bool) {
 }
 
 // Middleware enforces a valid token (cookie or Authorization: Bearer header).
-func Middleware(secret string) gin.HandlerFunc {
+// It also re-checks the admin against the DB on every request so a deactivated
+// or deleted admin loses access immediately instead of staying valid until the
+// JWT expires (token revocation by account state).
+func Middleware(db *gorm.DB, secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenStr := extractToken(c)
 		if tokenStr == "" {
@@ -112,9 +118,21 @@ func Middleware(secret string) gin.HandlerFunc {
 			abort401(c, "invalid or expired token")
 			return
 		}
+		// Single lookup: reject if the admin no longer exists or is deactivated.
+		adminID, _ := strconv.ParseUint(claims.Subject, 10, 64)
+		var admin models.Admin
+		if err := db.Select("id", "active", "role").First(&admin, uint(adminID)).Error; err != nil {
+			abort401(c, "account no longer active")
+			return
+		}
+		if !admin.Active {
+			abort401(c, "account no longer active")
+			return
+		}
 		c.Set(ctxAdminIDKey, claims.Subject)
 		c.Set(ctxAdminEmail, claims.Email)
-		c.Set(ctxAdminRole, claims.Role)
+		// Trust the live DB role over the (possibly stale) token role.
+		c.Set(ctxAdminRole, admin.Role)
 		c.Next()
 	}
 }
@@ -163,8 +181,10 @@ func ClearPatientCookie(c *gin.Context, secure bool) {
 	})
 }
 
-// PatientMiddleware enforces a valid patient token with role=patient.
-func PatientMiddleware(secret string) gin.HandlerFunc {
+// PatientMiddleware enforces a valid patient token with role=patient. Like the
+// admin middleware it re-checks the patient account against the DB so a deleted
+// or deactivated patient loses access immediately rather than at token expiry.
+func PatientMiddleware(db *gorm.DB, secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenStr := extractPatientToken(c)
 		if tokenStr == "" {
@@ -174,6 +194,16 @@ func PatientMiddleware(secret string) gin.HandlerFunc {
 		claims, err := ParseToken(secret, tokenStr)
 		if err != nil || claims.Role != RolePatient {
 			abort401(c, "invalid or expired patient token")
+			return
+		}
+		patientID, _ := strconv.ParseUint(claims.Subject, 10, 64)
+		var p models.PatientUser
+		if err := db.Select("id", "active").First(&p, uint(patientID)).Error; err != nil {
+			abort401(c, "account no longer active")
+			return
+		}
+		if !p.Active {
+			abort401(c, "account no longer active")
 			return
 		}
 		c.Set(ctxPatientIDKey, claims.Subject)

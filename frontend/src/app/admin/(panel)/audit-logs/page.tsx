@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Shield, History, AlertTriangle, CheckCircle2, Info } from "lucide-react";
+import { Shield, History, AlertTriangle, Info } from "lucide-react";
 import { AdminDataGrid } from "@/components/admin/AdminDataGrid";
 import { PageHeader } from "@/components/admin/page-header";
 import { SummaryCard } from "@/components/admin/summary-card";
@@ -38,17 +38,23 @@ export default function AuditLogsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
+    setError(null);
     auditApi.list(params)
       .then((res) => {
+        if (!active) return;
         setRows(res.data);
         setMeta(res.meta);
       })
       .catch((err) => {
-        setError(err instanceof ApiError ? err.message : "Gagal memuat audit log");
+        if (active) setError(err instanceof ApiError ? err.message : "Gagal memuat audit log");
       })
       .finally(() => {
-        setLoading(false);
+        if (active) setLoading(false);
       });
+    return () => {
+      active = false;
+    };
   }, [params]);
 
   const load = useCallback(async (showLoader = false) => {
@@ -78,17 +84,17 @@ export default function AuditLogsPage() {
     () => [
       {
         id: "Waktu",
-        header: "Time",
+        header: "Waktu",
         cell: ({ row }) => <span className="text-sm text-muted-foreground">{fmt(row.original.createdAt)}</span>,
       },
       {
-        id: "Admin",
-        header: "Admin",
+        id: "Aktor",
+        header: "Aktor",
         cell: ({ row }) => <span className="text-sm font-medium text-foreground">{row.original.adminEmail || "system"}</span>,
       },
       {
         id: "Aksi",
-        header: "Action",
+        header: "Aksi",
         cell: ({ row }) => <span className="font-medium text-foreground">{row.original.action}</span>,
       },
       {
@@ -113,16 +119,15 @@ export default function AuditLogsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="System"
-        title="Audit Logs"
-        description="Track administrative actions, security-sensitive changes, and system activity."
+        eyebrow="Sistem"
+        title="Audit Log"
+        description="Pantau aksi administratif, perubahan sensitif keamanan, dan aktivitas sistem."
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard icon={<History className="h-5 w-5" />} label="Total Events" value={meta.total} />
-        <SummaryCard icon={<Info className="h-5 w-5" />} label="Today Events" value={rows.filter((r) => new Date(r.createdAt).toDateString() === new Date().toDateString()).length} variant="info" />
-        <SummaryCard icon={<AlertTriangle className="h-5 w-5" />} label="High Risk Actions" value={rows.filter((r) => r.action.toLowerCase().includes("delete") || r.action.toLowerCase().includes("create")).length} variant="warning" />
-        <SummaryCard icon={<CheckCircle2 className="h-5 w-5" />} label="Success Rate" value={rows.length > 0 ? "100%" : "0%"} variant="success" />
+      <div className="grid gap-4 sm:grid-cols-3">
+        <SummaryCard icon={<History className="h-5 w-5" />} label="Total Aktivitas" value={meta.total} context="Seluruh riwayat tercatat" />
+        <SummaryCard icon={<Info className="h-5 w-5" />} label="Aktivitas (halaman ini)" value={rows.length} context={`Halaman ${meta.page} dari ${meta.totalPages}`} variant="info" />
+        <SummaryCard icon={<AlertTriangle className="h-5 w-5" />} label="Aksi Berisiko (halaman ini)" value={rows.filter((r) => r.action.toLowerCase().includes("delete") || r.action.toLowerCase().includes("create")).length} context="Buat / hapus data" variant="warning" />
       </div>
 
       <AdminDataGrid

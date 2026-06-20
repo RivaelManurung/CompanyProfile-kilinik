@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArticleCard, type ArticleCardData } from "@/components/ui/ArticleCard";
 import { Pagination } from "@/components/ui/Pagination";
@@ -22,10 +22,11 @@ export function ArticleGrid({ articles }: { articles: ArticleCardData[] }) {
       ? articles
       : articles.filter((a) => a.category === active);
 
-  // Reset to first page whenever the filter narrows the result set.
-  useEffect(() => {
+  // Reset to first page in the same handler that changes the filter — no effect needed.
+  const handleFilter = (category: string) => {
+    setActive(category);
     setPage(1);
-  }, [active]);
+  };
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const safePage = Math.min(page, totalPages || 1);
@@ -39,13 +40,14 @@ export function ArticleGrid({ articles }: { articles: ArticleCardData[] }) {
 
   return (
     <div ref={topRef} className="scroll-mt-28">
-      <div className="flex flex-wrap gap-2.5">
+      <div className="flex flex-wrap gap-2.5" role="group" aria-label="Filter kategori artikel">
         {categories.map((c) => (
           <button
             key={c}
-            onClick={() => setActive(c)}
+            onClick={() => handleFilter(c)}
+            aria-pressed={active === c}
             className={cn(
-              "rounded-full px-4 py-2 text-sm font-medium transition-all",
+              "rounded-full px-4 py-2 text-sm font-medium transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500",
               active === c
                 ? "bg-primary-600 text-white shadow-soft"
                 : "border border-ink-100 bg-white text-ink-600 hover:border-primary-200 hover:text-primary-700",

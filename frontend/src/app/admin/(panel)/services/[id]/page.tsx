@@ -12,6 +12,8 @@ const fields: Field[] = [
   { name: "short", label: "Ringkasan singkat", type: "textarea", hint: "Ditampilkan di kartu layanan." },
   { name: "description", label: "Deskripsi lengkap", type: "textarea", hint: "Konten halaman detail layanan." },
   { name: "points", label: "Poin layanan", type: "tags", placeholder: "Poin 1, Poin 2, Poin 3", full: true, hint: "Pisahkan dengan koma — tampil sebagai bullet." },
+  { name: "price", label: "Harga (Rp)", type: "number", placeholder: "250000", hint: "Tarif layanan dalam Rupiah. Kosongkan jika gratis/tidak ditampilkan." },
+  { name: "durationMinutes", label: "Durasi (menit)", type: "number", placeholder: "30", hint: "Estimasi durasi layanan dalam menit." },
   { name: "orderIndex", label: "Urutan tampil", type: "number", hint: "Makin kecil, makin awal." },
 ];
 
@@ -24,6 +26,8 @@ function toForm(d?: unknown): FormState {
     short: (data?.short as string) ?? "",
     description: (data?.description as string) ?? "",
     points: Array.isArray(data?.points) ? (data?.points as string[]) : [],
+    price: typeof data?.price === "number" ? (data.price as number) : "",
+    durationMinutes: typeof data?.durationMinutes === "number" ? (data.durationMinutes as number) : "",
     orderIndex: (data?.orderIndex as number) ?? 0,
   };
 }

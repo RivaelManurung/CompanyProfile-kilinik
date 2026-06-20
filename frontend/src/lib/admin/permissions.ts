@@ -5,6 +5,8 @@ export const permissions = {
   appointmentsRead: "appointments:read",
   appointmentsWrite: "appointments:write",
   appointmentsDelete: "appointments:delete",
+  patientsRead: "patients:read",
+  patientsWrite: "patients:write",
   contentRead: "content:read",
   contentWrite: "content:write",
   contentDelete: "content:delete",

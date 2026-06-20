@@ -19,6 +19,11 @@ interface PatientAuthContextValue {
     email: string;
     phone: string;
     password: string;
+    consentAccepted: boolean;
+    nik?: string;
+    dateOfBirth?: string;
+    sex?: string;
+    address?: string;
   }) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (body: {
@@ -26,6 +31,10 @@ interface PatientAuthContextValue {
     phone?: string;
     currentPassword?: string;
     newPassword?: string;
+    dateOfBirth?: string;
+    sex?: string;
+    address?: string;
+    nik?: string;
   }) => Promise<void>;
 }
 
@@ -45,17 +54,43 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
     }
   }, []);
 
-  // `refresh` is a stable useCallback with no deps. Calling it here triggers
-  // the initial session load on mount; the same function is reused by login/logout.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { refresh(); }, []);
+  // Initial session load on mount. Uses promise callbacks (not a synchronous
+  // setState in the effect body) so it satisfies the hooks lint rules; `refresh`
+  // remains exposed for consumers and is reused by login/logout.
+  useEffect(() => {
+    let active = true;
+    patientApi
+      .me()
+      .then((p) => {
+        if (active) setPatient(p);
+      })
+      .catch(() => {
+        if (active) setPatient(null);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     setPatient(await patientApi.login({ email, password }));
   }, []);
 
   const register = useCallback(
-    async (body: { name: string; email: string; phone: string; password: string }) => {
+    async (body: {
+      name: string;
+      email: string;
+      phone: string;
+      password: string;
+      consentAccepted: boolean;
+      nik?: string;
+      dateOfBirth?: string;
+      sex?: string;
+      address?: string;
+    }) => {
       setPatient(await patientApi.register(body));
     },
     [],
@@ -72,6 +107,10 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
       phone?: string;
       currentPassword?: string;
       newPassword?: string;
+      dateOfBirth?: string;
+      sex?: string;
+      address?: string;
+      nik?: string;
     }) => {
       setPatient(await patientApi.updateProfile(body));
     },

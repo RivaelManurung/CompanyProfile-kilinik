@@ -135,23 +135,27 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 		return
 	}
 
+	// Update only fields the caller actually sent so concurrent edits to other
+	// columns are not clobbered. Active is a *bool, so an explicit false is honored
+	// without a zero-value wiping out an unrelated flag.
+	updates := map[string]any{}
 	if req.Name != "" {
-		u.Name = req.Name
+		updates["name"] = req.Name
 	}
 	if req.Email != "" {
-		u.Email = strings.ToLower(strings.TrimSpace(req.Email))
+		updates["email"] = strings.ToLower(strings.TrimSpace(req.Email))
 	}
 	if req.Role != "" {
-		u.Role = req.Role
+		updates["role"] = req.Role
 	}
 	if req.Phone != "" {
-		u.Phone = req.Phone
+		updates["phone"] = req.Phone
 	}
 	if req.AvatarURL != "" {
-		u.AvatarURL = req.AvatarURL
+		updates["avatar_url"] = req.AvatarURL
 	}
 	if req.Active != nil {
-		u.Active = *req.Active
+		updates["active"] = *req.Active
 	}
 	if req.Password != "" {
 		hash, err := auth.HashPassword(req.Password)
@@ -159,11 +163,18 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 			fail(c, http.StatusInternalServerError, "HASH_FAILED", "Gagal memproses kata sandi")
 			return
 		}
-		u.PasswordHash = hash
+		updates["password_hash"] = hash
 	}
-	if err := h.DB.Save(&u).Error; err != nil {
-		fail(c, http.StatusConflict, "UPDATE_FAILED", "Gagal memperbarui (email mungkin sudah dipakai)")
-		return
+	if len(updates) > 0 {
+		if err := h.DB.Model(&u).Updates(updates).Error; err != nil {
+			fail(c, http.StatusConflict, "UPDATE_FAILED", "Gagal memperbarui (email mungkin sudah dipakai)")
+			return
+		}
+		// Re-fetch so the response reflects the persisted row.
+		if err := h.DB.First(&u, c.Param("id")).Error; err != nil {
+			fail(c, http.StatusInternalServerError, "DB_ERROR", "Gagal memuat pengguna")
+			return
+		}
 	}
 	h.audit(c, "update", "users", c.Param("id"))
 	ok(c, u)

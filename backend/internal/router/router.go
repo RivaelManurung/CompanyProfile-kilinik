@@ -20,6 +20,10 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	// Select the rate-limit / login-lockout backing store (Redis when REDIS_URL
+	// is set and reachable, otherwise process-local).
+	initRateStore(cfg.RedisURL)
+
 	r := gin.New()
 
 	// In production, trust only known proxy CIDRs so ClientIP() cannot be
@@ -62,16 +66,18 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	r.Use(mutationOriginGuard(cfg))
 
 	h := handlers.New(db, cfg)
-	authMW := auth.Middleware(cfg.JWTSecret)
+	authMW := auth.Middleware(db, cfg.JWTSecret)
 
 	api := r.Group("/api")
 	{
 		api.GET("/health", h.Health)
 
 		// Auth
+		// Two-layer login throttle: per-IP rate limit, then per-email lockout that
+		// stops credential-stuffing across rotating source IPs.
 		api.POST("/auth/login", rateLimit(8, 10*time.Minute, func(c *gin.Context) string {
 			return "login:" + c.ClientIP()
-		}), h.Login)
+		}), emailLoginLockout(), h.Login)
 		api.POST("/auth/logout", h.Logout)
 		api.GET("/auth/me", authMW, h.Me)
 
@@ -91,7 +97,7 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		}
 
 		// Patient accounts (public booking realm, separate from admin auth)
-		patientMW := auth.PatientMiddleware(cfg.JWTSecret)
+		patientMW := auth.PatientMiddleware(db, cfg.JWTSecret)
 		pat := api.Group("/patient")
 		{
 			pat.POST("/register", rateLimit(10, 10*time.Minute, func(c *gin.Context) string {
@@ -101,10 +107,26 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 				return "plogin:" + c.ClientIP()
 			}), h.PatientLogin)
 			pat.POST("/logout", h.PatientLogout)
+			// Password recovery + email verification (rate-limited like login to
+			// blunt enumeration / token brute-forcing).
+			pat.POST("/forgot-password", rateLimit(10, 10*time.Minute, func(c *gin.Context) string {
+				return "pforgot:" + c.ClientIP()
+			}), h.PatientForgotPassword)
+			pat.POST("/reset-password", rateLimit(10, 10*time.Minute, func(c *gin.Context) string {
+				return "preset:" + c.ClientIP()
+			}), h.PatientResetPassword)
+			pat.POST("/verify-email", rateLimit(10, 10*time.Minute, func(c *gin.Context) string {
+				return "pverify:" + c.ClientIP()
+			}), h.PatientVerifyEmail)
 			pat.GET("/me", patientMW, h.PatientMe)
 			pat.PUT("/me", patientMW, h.PatientUpdateProfile)
+			// Data portability + right to erasure (PDP compliance).
+			pat.GET("/me/export", patientMW, h.PatientExportData)
+			pat.DELETE("/me", patientMW, h.PatientDeleteAccount)
 			pat.GET("/appointments", patientMW, h.PatientListAppointments)
 			pat.POST("/appointments", patientMW, h.PatientCreateAppointment)
+			pat.POST("/appointments/:id/cancel", patientMW, h.PatientCancelAppointment)
+			pat.PATCH("/appointments/:id", patientMW, h.PatientRescheduleAppointment)
 		}
 
 		// Admin (protected)
@@ -126,6 +148,10 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 			registerCRUD(admin, "services", auth.PermissionClinicRead, auth.PermissionClinicWrite, auth.PermissionClinicDelete, h.ListServices, h.GetService, h.CreateService, h.UpdateService, h.DeleteService)
 			registerCRUD(admin, "locations", auth.PermissionClinicRead, auth.PermissionClinicWrite, auth.PermissionClinicDelete, h.ListLocations, h.GetLocation, h.CreateLocation, h.UpdateLocation, h.DeleteLocation)
 			registerCRUD(admin, "promotions", auth.PermissionContentRead, auth.PermissionContentWrite, auth.PermissionContentDelete, h.ListPromotions, h.GetPromotion, h.CreatePromotion, h.UpdatePromotion, h.DeletePromotion)
+
+			// Patient management (admin view of patient accounts + their bookings)
+			admin.GET("/patients", auth.RequirePermission(auth.PermissionPatientsRead), h.AdminListPatients)
+			admin.GET("/patients/:id", auth.RequirePermission(auth.PermissionPatientsRead), h.AdminGetPatient)
 
 			// Admin user & role management (system administration)
 			admin.GET("/users", auth.RequirePermission(auth.PermissionSystemRead), h.ListUsers)

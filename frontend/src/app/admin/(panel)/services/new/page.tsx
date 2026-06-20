@@ -12,11 +12,13 @@ const fields: Field[] = [
   { name: "short", label: "Ringkasan singkat", type: "textarea", hint: "Ditampilkan di kartu layanan." },
   { name: "description", label: "Deskripsi lengkap", type: "textarea", hint: "Konten halaman detail layanan." },
   { name: "points", label: "Poin layanan", type: "tags", placeholder: "Poin 1, Poin 2, Poin 3", full: true, hint: "Pisahkan dengan koma — tampil sebagai bullet." },
+  { name: "price", label: "Harga (Rp)", type: "number", placeholder: "250000", hint: "Tarif layanan dalam Rupiah. Kosongkan jika gratis/tidak ditampilkan." },
+  { name: "durationMinutes", label: "Durasi (menit)", type: "number", placeholder: "30", hint: "Estimasi durasi layanan dalam menit." },
   { name: "orderIndex", label: "Urutan tampil", type: "number", hint: "Makin kecil, makin awal." },
 ];
 
 function toForm(): FormState {
-  return { title: "", icon: "Activity", slug: "", short: "", description: "", points: [], orderIndex: 0 };
+  return { title: "", icon: "Activity", slug: "", short: "", description: "", points: [], price: "", durationMinutes: "", orderIndex: 0 };
 }
 
 export default function NewServicePage() {

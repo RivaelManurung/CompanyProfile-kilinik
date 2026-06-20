@@ -77,7 +77,7 @@ export function DeletePage<T extends { name?: string; title?: string }>({
   if (notFound || !data) {
     return (
       <div className="space-y-6">
-        <PageHeader eyebrow="Confirmation" title={`${singular} tidak ditemukan`} backButton={
+        <PageHeader eyebrow="Konfirmasi" title={`${singular} tidak ditemukan`} backButton={
           <Button variant="ghost" size="sm" onClick={() => router.push(backUrl)}>
             <ArrowLeft className="h-4 w-4" /> Kembali
           </Button>
@@ -89,8 +89,8 @@ export function DeletePage<T extends { name?: string; title?: string }>({
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Confirmation"
-        title={`Delete ${singular}`}
+        eyebrow="Konfirmasi"
+        title={`Hapus ${singular}`}
         backButton={
           <Button variant="ghost" size="sm" onClick={() => router.push(backUrl)}>
             <ArrowLeft className="h-4 w-4" /> Kembali
@@ -104,20 +104,20 @@ export function DeletePage<T extends { name?: string; title?: string }>({
             <Trash2 className="h-8 w-8 text-destructive" />
           </div>
           <h2 className="text-xl font-semibold text-foreground">
-            Delete &ldquo;{label}&rdquo;?
+            Hapus &ldquo;{label}&rdquo;?
           </h2>
           <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-            This action is permanent and will be recorded in the audit log. Make sure this data is no longer needed.
+            Tindakan ini permanen dan akan tercatat di audit log. Pastikan data ini sudah tidak diperlukan.
           </p>
           <div className="mt-8 flex items-center justify-center gap-3">
             <Button variant="outline" size="lg" onClick={() => router.push(backUrl)} disabled={deleting}>
-              Cancel
+              Batal
             </Button>
             <Button variant="destructive" size="lg" onClick={confirmDelete} disabled={deleting}>
               {deleting ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Deleting...</>
+                <><Loader2 className="h-4 w-4 animate-spin" /> Menghapus…</>
               ) : (
-                <><Trash2 className="h-4 w-4" /> Delete</>
+                <><Trash2 className="h-4 w-4" /> Hapus</>
               )}
             </Button>
           </div>

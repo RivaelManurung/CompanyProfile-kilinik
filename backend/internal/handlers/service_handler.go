@@ -9,13 +9,15 @@ import (
 )
 
 type serviceRequest struct {
-	Slug        string   `json:"slug" binding:"omitempty,max=120"`
-	Title       string   `json:"title" binding:"required,min=2,max=160"`
-	Short       string   `json:"short" binding:"omitempty,max=300"`
-	Description string   `json:"description" binding:"omitempty"`
-	Icon        string   `json:"icon" binding:"omitempty,max=60"`
-	Points      []string `json:"points"`
-	OrderIndex  int      `json:"orderIndex"`
+	Slug            string   `json:"slug" binding:"omitempty,max=120"`
+	Title           string   `json:"title" binding:"required,min=2,max=160"`
+	Short           string   `json:"short" binding:"omitempty,max=300"`
+	Description     string   `json:"description" binding:"omitempty"`
+	Icon            string   `json:"icon" binding:"omitempty,max=60"`
+	Points          []string `json:"points"`
+	OrderIndex      int      `json:"orderIndex"`
+	Price           int      `json:"price" binding:"omitempty,min=0"`
+	DurationMinutes int      `json:"durationMinutes" binding:"omitempty,min=0"`
 }
 
 func (h *Handler) ListServices(c *gin.Context) {
@@ -62,6 +64,7 @@ func (h *Handler) CreateService(c *gin.Context) {
 	s := models.Service{
 		Slug: slug, Title: req.Title, Short: req.Short, Description: req.Description,
 		Icon: req.Icon, Points: req.Points, OrderIndex: req.OrderIndex,
+		Price: req.Price, DurationMinutes: req.DurationMinutes,
 	}
 	if err := h.DB.Create(&s).Error; err != nil {
 		fail(c, http.StatusConflict, "CREATE_FAILED", "Gagal membuat (slug mungkin sudah dipakai)")
@@ -88,6 +91,8 @@ func (h *Handler) UpdateService(c *gin.Context) {
 	s.Icon = req.Icon
 	s.Points = req.Points
 	s.OrderIndex = req.OrderIndex
+	s.Price = req.Price
+	s.DurationMinutes = req.DurationMinutes
 	if req.Slug != "" {
 		s.Slug = req.Slug
 	}

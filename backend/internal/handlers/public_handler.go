@@ -18,7 +18,24 @@ func (h *Handler) PublicDoctors(c *gin.Context) {
 		fail(c, http.StatusInternalServerError, "DB_ERROR", "Gagal memuat data dokter")
 		return
 	}
-	ok(c, items)
+	// Project a public-safe shape: STR/SIP registration numbers are admin-only and
+	// must not leak; ConsultationFee is intentionally surfaced for the booking UI.
+	out := make([]gin.H, 0, len(items))
+	for _, d := range items {
+		out = append(out, gin.H{
+			"id":              d.ID,
+			"slug":            d.Slug,
+			"name":            d.Name,
+			"specialty":       d.Specialty,
+			"experience":      d.Experience,
+			"imageUrl":        d.ImageURL,
+			"accent":          d.Accent,
+			"orderIndex":      d.OrderIndex,
+			"slotMinutes":     d.SlotMinutes,
+			"consultationFee": d.ConsultationFee,
+		})
+	}
+	ok(c, out)
 }
 
 func (h *Handler) PublicServices(c *gin.Context) {

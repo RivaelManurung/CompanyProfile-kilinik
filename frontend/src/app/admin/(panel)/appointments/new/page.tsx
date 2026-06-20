@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
@@ -24,7 +24,8 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { AsyncSelect } from "@/components/admin/async-select";
 import { PreviewPanel } from "@/components/admin/preview-panel";
 import { StatusBadge } from "@/components/admin/status-badge";
-import { appointmentsApi, optionsApi, ApiError } from "@/lib/admin/api";
+import { appointmentsApi, optionsApi, appointmentErrorMessage } from "@/lib/admin/api";
+import type { AvailabilitySlot } from "@/lib/admin/types";
 import { cn } from "@/lib/utils";
 
 const appointmentFormSchema = z.object({
@@ -33,7 +34,7 @@ const appointmentFormSchema = z.object({
   email: z.string().email("Email tidak valid").optional().or(z.literal("")),
   patientType: z.enum(["new", "returning"]),
   service: z.string().min(1, "Layanan wajib diisi").max(120),
-  doctor: z.string().optional().or(z.literal("")),
+  doctorId: z.string().min(1, "Dokter wajib dipilih"),
   appointmentDate: z.string().min(1, "Tanggal wajib diisi"),
   appointmentTime: z.string().min(1, "Waktu wajib diisi"),
   source: z.enum(["admin", "website", "whatsapp", "phone"]),
@@ -54,7 +55,7 @@ export default function NewAppointmentPage() {
       email: "",
       patientType: "new",
       service: "",
-      doctor: "",
+      doctorId: "",
       appointmentDate: "",
       appointmentTime: "",
       source: "admin",
@@ -65,15 +66,61 @@ export default function NewAppointmentPage() {
   const { register, handleSubmit, setValue, control, formState: { errors } } = form;
 
   const watched = useWatch({ control });
+  const doctorId = watched.doctorId ?? "";
+  const appointmentDate = watched.appointmentDate ?? "";
+
+  const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+
+  const fetchSlots = useCallback(async () => {
+    if (!doctorId || !appointmentDate) {
+      setSlots([]);
+      return;
+    }
+    setLoadingSlots(true);
+    try {
+      const res = await appointmentsApi.availability(Number(doctorId), appointmentDate.slice(0, 10));
+      setSlots(res.slots);
+    } catch (err) {
+      setSlots([]);
+      toast.error(appointmentErrorMessage(err, "Gagal memuat slot waktu"));
+    } finally {
+      setLoadingSlots(false);
+    }
+  }, [doctorId, appointmentDate]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchSlots();
+  }, [fetchSlots]);
+
+  // Clear a chosen time that is no longer offered after slots refresh.
+  useEffect(() => {
+    const current = watched.appointmentTime;
+    if (current && slots.length > 0 && !slots.some((s) => s.time === current && s.available)) {
+      setValue("appointmentTime", "");
+    }
+  }, [slots, watched.appointmentTime, setValue]);
 
   async function save(values: FormValues) {
     setSubmitting(true);
     try {
-      await appointmentsApi.create(values);
+      await appointmentsApi.create({
+        name: values.name,
+        phone: values.phone,
+        email: values.email,
+        patientType: values.patientType,
+        service: values.service,
+        doctorId: Number(values.doctorId),
+        appointmentDate: values.appointmentDate.slice(0, 10),
+        appointmentTime: values.appointmentTime,
+        source: values.source,
+        message: values.message,
+      });
       toast.success("Janji temu berhasil dibuat");
       router.push("/admin/appointments");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Gagal menyimpan");
+      toast.error(appointmentErrorMessage(err, "Gagal menyimpan"));
     } finally {
       setSubmitting(false);
     }
@@ -150,15 +197,21 @@ export default function NewAppointmentPage() {
                   {errors.service && <p className="text-xs font-medium text-destructive">{errors.service.message}</p>}
                 </FieldGroup>
                 <FieldGroup>
-                  <Label htmlFor="doctor">Dokter</Label>
+                  <Label htmlFor="doctorId">
+                    Dokter <span className="text-destructive ml-0.5">*</span>
+                  </Label>
                   <AsyncSelect
-                    id="doctor"
-                    value={watched.doctor ?? ""}
-                    onChange={(v) => setValue("doctor", v)}
-                    loader={optionsApi.doctors}
-                    placeholder="Pilih dokter (opsional)"
-                    clearable
+                    id="doctorId"
+                    value={doctorId}
+                    onChange={(v) => {
+                      setValue("doctorId", v, { shouldValidate: true });
+                      setValue("appointmentTime", "");
+                    }}
+                    loader={optionsApi.doctorIds}
+                    placeholder="Pilih dokter"
+                    aria-invalid={Boolean(errors.doctorId)}
                   />
+                  {errors.doctorId && <p className="text-xs font-medium text-destructive">{errors.doctorId.message}</p>}
                 </FieldGroup>
                 <FieldGroup>
                   <Label htmlFor="appointmentDate">
@@ -166,17 +219,45 @@ export default function NewAppointmentPage() {
                   </Label>
                   <DatePicker
                     id="appointmentDate"
-                    value={watched.appointmentDate ?? ""}
-                    onChange={(v) => setValue("appointmentDate", v, { shouldValidate: true })}
+                    value={appointmentDate}
+                    onChange={(v) => {
+                      setValue("appointmentDate", v, { shouldValidate: true });
+                      setValue("appointmentTime", "");
+                    }}
                     aria-invalid={Boolean(errors.appointmentDate)}
                   />
                   {errors.appointmentDate && <p className="text-xs font-medium text-destructive">{errors.appointmentDate.message}</p>}
                 </FieldGroup>
-                <FieldGroup>
-                  <Label htmlFor="appointmentTime">
-                    Waktu <span className="text-destructive ml-0.5">*</span>
+                <FieldGroup className="sm:col-span-2">
+                  <Label>
+                    Slot Waktu <span className="text-destructive ml-0.5">*</span>
                   </Label>
-                  <Input id="appointmentTime" type="time" {...register("appointmentTime")} aria-invalid={Boolean(errors.appointmentTime)} />
+                  {!doctorId || !appointmentDate ? (
+                    <p className="text-sm text-muted-foreground">Pilih dokter dan tanggal untuk melihat slot tersedia.</p>
+                  ) : loadingSlots ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="size-4 animate-spin" /> Memuat slot…
+                    </div>
+                  ) : slots.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Tidak ada slot untuk pilihan ini.</p>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                      {slots.map((slot) => (
+                        <Button
+                          key={slot.time}
+                          type="button"
+                          size="sm"
+                          variant={watched.appointmentTime === slot.time ? "default" : "outline"}
+                          disabled={!slot.available}
+                          aria-pressed={watched.appointmentTime === slot.time}
+                          className={cn("text-xs", !slot.available && "opacity-40")}
+                          onClick={() => setValue("appointmentTime", slot.time, { shouldValidate: true })}
+                        >
+                          {slot.time}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                   {errors.appointmentTime && <p className="text-xs font-medium text-destructive">{errors.appointmentTime.message}</p>}
                 </FieldGroup>
                 <FieldGroup>
@@ -223,12 +304,6 @@ export default function NewAppointmentPage() {
                         <Stethoscope className="h-4 w-4 shrink-0 text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">{watched.service || "Belum diisi"}</span>
                       </div>
-                      {watched.doctor && (
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 shrink-0 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">{watched.doctor}</span>
-                        </div>
-                      )}
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">
@@ -251,8 +326,9 @@ export default function NewAppointmentPage() {
                       <ValidationItem label="Nama pasien" ok={Boolean(watched.name)} />
                       <ValidationItem label="Nomor telepon" ok={Boolean(watched.phone)} />
                       <ValidationItem label="Layanan" ok={Boolean(watched.service)} />
+                      <ValidationItem label="Dokter" ok={Boolean(watched.doctorId)} />
                       <ValidationItem label="Tanggal" ok={Boolean(watched.appointmentDate)} />
-                      <ValidationItem label="Waktu" ok={Boolean(watched.appointmentTime)} />
+                      <ValidationItem label="Slot waktu" ok={Boolean(watched.appointmentTime)} />
                     </div>
                   ),
                 },

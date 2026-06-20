@@ -13,7 +13,12 @@ export function FloatingActions() {
   useMotionValueEvent(scrollY, "change", (latest) => setShowTop(latest > 600));
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
+    <div
+      className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") setOpen(false);
+      }}
+    >
       <AnimatePresence>
         {showTop && (
           <motion.button
@@ -37,12 +42,16 @@ export function FloatingActions() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.95 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            id="floating-contact-menu"
+            role="menu"
+            aria-label="Pilihan kontak cepat"
             className="flex w-60 flex-col gap-1 rounded-2xl border border-ink-100 bg-white p-2 shadow-lift"
           >
             <a
               href={`https://wa.me/${site.whatsapp}?text=${encodeURIComponent(site.whatsappText)}`}
               target="_blank"
               rel="noopener noreferrer"
+              role="menuitem"
               className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-accent-50"
             >
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-accent-500 text-white">
@@ -55,6 +64,7 @@ export function FloatingActions() {
             </a>
             <a
               href={`tel:${site.phone}`}
+              role="menuitem"
               className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-primary-50"
             >
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary-500 text-white">
@@ -66,7 +76,8 @@ export function FloatingActions() {
               </span>
             </a>
             <a
-              href="/kontak"
+              href="/buat-janji"
+              role="menuitem"
               className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-ink-50"
             >
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-ink-800 text-white">
@@ -84,8 +95,10 @@ export function FloatingActions() {
       <button
         onClick={() => setOpen((v) => !v)}
         className="animate-pulse-ring relative inline-flex h-14 w-14 items-center justify-center rounded-full bg-accent-500 text-white shadow-glow transition-transform hover:scale-105"
-        aria-label="Hubungi kami"
+        aria-label={open ? "Tutup menu kontak" : "Hubungi kami"}
+        aria-haspopup="menu"
         aria-expanded={open}
+        aria-controls="floating-contact-menu"
       >
         <AnimatePresence mode="wait" initial={false}>
           {open ? (

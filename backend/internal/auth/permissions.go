@@ -29,6 +29,8 @@ const (
 	PermissionSystemRead         = "system:read"
 	PermissionSystemWrite        = "system:write"
 	PermissionAuditRead          = "audit:read"
+	PermissionPatientsRead       = "patients:read"
+	PermissionPatientsWrite      = "patients:write"
 )
 
 // permMu guards rolePermissions, which is hydrated from the database at boot
@@ -43,28 +45,34 @@ var defaultRolePermissions = map[string]map[string]bool{
 		PermissionContentRead: true, PermissionContentWrite: true, PermissionContentDelete: true,
 		PermissionClinicRead: true, PermissionClinicWrite: true, PermissionClinicDelete: true,
 		PermissionSystemRead: true, PermissionSystemWrite: true, PermissionAuditRead: true,
+		PermissionPatientsRead: true, PermissionPatientsWrite: true,
 	},
 	RoleSuperAdmin: {
 		PermissionDashboardRead: true, PermissionAppointmentsRead: true, PermissionAppointmentsWrite: true, PermissionAppointmentsDelete: true,
 		PermissionContentRead: true, PermissionContentWrite: true, PermissionContentDelete: true,
 		PermissionClinicRead: true, PermissionClinicWrite: true, PermissionClinicDelete: true,
 		PermissionSystemRead: true, PermissionSystemWrite: true, PermissionAuditRead: true,
+		PermissionPatientsRead: true, PermissionPatientsWrite: true,
 	},
 	RoleClinicAdmin: {
 		PermissionDashboardRead: true, PermissionAppointmentsRead: true, PermissionAppointmentsWrite: true, PermissionAppointmentsDelete: true,
 		PermissionContentRead: true, PermissionContentWrite: true, PermissionContentDelete: true,
 		PermissionClinicRead: true, PermissionClinicWrite: true, PermissionClinicDelete: true, PermissionAuditRead: true,
+		PermissionPatientsRead: true, PermissionPatientsWrite: true,
 	},
 	RoleReceptionist: {
 		PermissionDashboardRead: true, PermissionAppointmentsRead: true, PermissionAppointmentsWrite: true,
-		PermissionClinicRead: true,
+		PermissionClinicRead:   true,
+		PermissionPatientsRead: true,
 	},
 	RoleContentEditor: {
 		PermissionDashboardRead: true, PermissionContentRead: true, PermissionContentWrite: true,
 		PermissionClinicRead: true,
 	},
+	// viewer is intentionally denied appointments:read and patients:read so a
+	// read-only account cannot enumerate patient contact/PHI data.
 	RoleViewer: {
-		PermissionDashboardRead: true, PermissionAppointmentsRead: true, PermissionContentRead: true, PermissionClinicRead: true,
+		PermissionDashboardRead: true, PermissionContentRead: true, PermissionClinicRead: true,
 	},
 }
 
@@ -81,6 +89,7 @@ var AllPermissions = []string{
 	PermissionAppointmentsRead, PermissionAppointmentsWrite, PermissionAppointmentsDelete,
 	PermissionContentRead, PermissionContentWrite, PermissionContentDelete,
 	PermissionClinicRead, PermissionClinicWrite, PermissionClinicDelete,
+	PermissionPatientsRead, PermissionPatientsWrite,
 	PermissionSystemRead, PermissionSystemWrite, PermissionAuditRead,
 }
 

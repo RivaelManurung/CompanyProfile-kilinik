@@ -72,6 +72,11 @@ func (h *Handler) ListPromotions(c *gin.Context) {
 	case "inactive":
 		q = q.Where("active = ?", false)
 	}
+	// Server-side campaign-type filter so pagination/counts stay correct.
+	switch c.Query("campaign") {
+	case "discount", "bundle", "seasonal", "new_patient", "wellness":
+		q = q.Where("campaign_type = ?", c.Query("campaign"))
+	}
 	if params.Q != "" {
 		like := "%" + params.Q + "%"
 		q = q.Where("title ILIKE ? OR tag ILIKE ? OR slug ILIKE ?", like, like, like)

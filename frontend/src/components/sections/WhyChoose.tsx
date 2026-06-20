@@ -31,9 +31,9 @@ export function WhyChoose() {
       <Container className="grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
         {/* Left UX panel */}
         <Reveal direction="right" className="order-2 lg:order-1">
-          <aside className="rounded-[1.75rem] border border-primary-100 bg-white p-5 shadow-[0_20px_70px_rgba(15,66,61,0.07)] sm:p-6">
+          <aside className="rounded-[1.75rem] border border-primary-100 bg-white p-5 shadow-card sm:p-6">
             <div className="rounded-[1.25rem] border border-primary-100/80 bg-primary-50/40 p-5 sm:p-6">
-              <p className="text-xs font-bold uppercase tracking-wider text-primary-750">
+              <p className="text-xs font-bold uppercase tracking-wider text-primary-700">
                 Alur Perawatan
               </p>
 

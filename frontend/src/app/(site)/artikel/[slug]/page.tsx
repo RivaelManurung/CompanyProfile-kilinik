@@ -14,6 +14,13 @@ import { formatDateID } from "@/lib/utils";
 
 export const revalidate = 120;
 
+// Pre-render known article slugs at build so the first visit is served from
+// static HTML (new slugs still render on-demand, then cache via ISR).
+export async function generateStaticParams() {
+  const articles = await getArticles();
+  return articles.map((a) => ({ slug: a.slug }));
+}
+
 export async function generateMetadata({
   params,
 }: {

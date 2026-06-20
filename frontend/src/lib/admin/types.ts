@@ -32,7 +32,7 @@ export interface RolesResponse {
   allPermissions: string[];
 }
 
-export type AppointmentStatus = "pending" | "confirmed" | "done" | "cancelled";
+export type AppointmentStatus = "pending" | "confirmed" | "done" | "cancelled" | "no_show";
 
 export interface Appointment {
   id: number;
@@ -41,15 +41,29 @@ export interface Appointment {
   email: string;
   service: string;
   doctor?: string;
-  doctorId?: number;
+  doctorId?: number | null;
   appointmentDate?: string;
   appointmentTime?: string;
+  scheduledAt?: string | null;
   source?: string;
   patientType?: string;
   message: string;
   status: AppointmentStatus;
+  cancelReason?: string;
+  cancelledAt?: string | null;
+  handledByAdminId?: number | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AvailabilitySlot {
+  time: string;
+  available: boolean;
+}
+
+export interface AvailabilityResponse {
+  slots: AvailabilitySlot[];
+  slotMinutes: number;
 }
 
 export interface Doctor {
@@ -62,8 +76,26 @@ export interface Doctor {
   accent: string;
   orderIndex: number;
   active: boolean;
+  strNumber?: string;
+  sipNumber?: string;
+  consultationFee?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+/** One weekly working window for a doctor. Weekday 0=Sunday … 6=Saturday. */
+export interface DoctorScheduleWindow {
+  id?: number;
+  doctorId?: number;
+  weekday: number;
+  startMinute: number;
+  endMinute: number;
+}
+
+export interface DoctorSchedule {
+  doctorId: number;
+  slotMinutes: number;
+  windows: DoctorScheduleWindow[];
 }
 
 export type ArticleStatus = "draft" | "published" | "scheduled" | "archived";
@@ -103,6 +135,8 @@ export interface Service {
   icon: string;
   points: string[];
   orderIndex: number;
+  price?: number;
+  durationMinutes?: number;
 }
 
 export interface ClinicLocation {
@@ -185,6 +219,35 @@ export interface ListParams {
   status?: string;
   sort?: string;
   direction?: "asc" | "desc";
+}
+
+/** Promotions list adds a server-side campaign-type filter. */
+export interface PromotionListParams extends ListParams {
+  campaign?: string;
+}
+
+/** Admin-safe projection of a patient account. NIK is masked by the backend. */
+export interface Patient {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  sex: string;
+  dateOfBirth?: string | null;
+  address: string;
+  medicalRecordNo: string;
+  /** Masked NIK (e.g. "3201************"). The raw NIK is never exposed. */
+  nik: string;
+  consentAcceptedAt?: string | null;
+  emailVerifiedAt?: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PatientDetail {
+  patient: Patient;
+  appointments: Appointment[];
 }
 
 export interface AuditLog {

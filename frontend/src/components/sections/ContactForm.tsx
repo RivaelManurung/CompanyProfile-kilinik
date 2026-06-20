@@ -1,55 +1,62 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, CheckCircle2, Loader2 } from "lucide-react";
-import { services } from "@/lib/data";
+import { Send, CheckCircle2, CalendarPlus } from "lucide-react";
+import { TextField, TextAreaField, fieldControlClass } from "@/components/ui/Field";
+import { site } from "@/lib/site";
 
-const fieldClass =
-  "w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm text-ink-900 outline-none transition-colors placeholder:text-ink-400 focus:border-primary-400 focus:ring-2 focus:ring-primary-100";
+const topics = [
+  "Pertanyaan umum",
+  "Informasi layanan",
+  "Kerja sama / korporat",
+  "Lainnya",
+];
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+type FieldErrors = { name?: string; phone?: string; message?: string };
 
+/**
+ * General inquiry form. Booking lives entirely in the authenticated wizard
+ * (/buat-janji) — this form composes a WhatsApp message for questions, so
+ * there is no longer a second, anonymous appointment-creation path.
+ */
 export function ContactForm() {
-  const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (status !== "idle") return;
-    setStatus("loading");
-    setError(null);
-
     const fd = new FormData(e.currentTarget);
-    const payload = {
-      name: String(fd.get("name") || ""),
-      phone: String(fd.get("phone") || ""),
-      email: String(fd.get("email") || ""),
-      service: String(fd.get("service") || ""),
-      message: String(fd.get("message") || ""),
-    };
+    const name = String(fd.get("name") ?? "").trim();
+    const phone = String(fd.get("phone") ?? "").trim();
+    const topic = String(fd.get("topic") ?? "Pertanyaan umum");
+    const message = String(fd.get("message") ?? "").trim();
 
-    try {
-      const res = await fetch(`${API}/appointments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error?.message || "Gagal mengirim permintaan");
-      }
-      setStatus("done");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Terjadi kesalahan. Coba lagi.");
-      setStatus("idle");
-    }
+    const next: FieldErrors = {};
+    if (name.length < 2) next.name = "Nama wajib diisi.";
+    if (phone.replace(/\D/g, "").length < 9)
+      next.phone = "Masukkan nomor WhatsApp yang valid.";
+    if (message.length < 5) next.message = "Tuliskan pesan Anda.";
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
+
+    const text = `Halo ${site.shortName}, saya ${name}.\nTopik: ${topic}\n\n${message}\n\nNo. HP: ${phone}`;
+    window.open(
+      `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(text)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+    setSent(true);
   }
+
+  const clear = (key: keyof FieldErrors) =>
+    setErrors((p) => ({ ...p, [key]: undefined }));
 
   return (
     <div className="relative rounded-3xl border border-ink-100 bg-white p-7 shadow-card sm:p-9">
       <AnimatePresence mode="wait">
-        {status === "done" ? (
+        {sent ? (
           <motion.div
             key="done"
             initial={{ opacity: 0, scale: 0.96 }}
@@ -59,90 +66,107 @@ export function ContactForm() {
             <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-accent-50 text-accent-600">
               <CheckCircle2 className="h-9 w-9" />
             </span>
-            <h3 className="mt-5 text-xl font-bold text-ink-900">Terima kasih!</h3>
+            <h3 className="mt-5 text-xl font-bold text-ink-900">
+              Pesan Anda dibuka di WhatsApp
+            </h3>
             <p className="mt-2 max-w-sm text-sm text-ink-500">
-              Permintaan janji Anda telah kami terima. Tim kami akan menghubungi Anda dalam waktu
-              1×24 jam untuk konfirmasi.
+              Tekan kirim di WhatsApp untuk menyelesaikan. Tim kami akan
+              membalas pada jam operasional.
             </p>
             <button
               type="button"
-              onClick={() => setStatus("idle")}
-              className="mt-6 text-sm font-semibold text-primary-600 hover:text-primary-700"
+              onClick={() => setSent(false)}
+              className="mt-6 text-sm font-semibold text-primary-700 hover:text-primary-800"
             >
-              Kirim permintaan lain
+              Tulis pesan lain
             </button>
           </motion.div>
         ) : (
-          <motion.form
-            key="form"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            onSubmit={handleSubmit}
-            className="space-y-4"
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="contact-name" className="mb-1.5 block text-sm font-medium text-ink-700">Nama lengkap</label>
-                <input id="contact-name" required name="name" autoComplete="name" placeholder="Nama Anda" className={fieldClass} />
+          <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            {/* Booking is a separate, dedicated flow */}
+            <Link
+              href="/buat-janji"
+              className="group mb-6 flex items-center gap-3 rounded-2xl border border-primary-100 bg-primary-50/60 p-4 transition-colors hover:border-primary-200 hover:bg-primary-50"
+            >
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-600 text-white">
+                <CalendarPlus className="h-5 w-5" />
+              </span>
+              <span className="flex-1">
+                <span className="block text-sm font-bold text-ink-900">
+                  Mau membuat janji temu?
+                </span>
+                <span className="block text-xs text-ink-500">
+                  Pilih dokter & jadwal lewat portal janji temu →
+                </span>
+              </span>
+            </Link>
+
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField
+                  label="Nama lengkap"
+                  name="name"
+                  autoComplete="name"
+                  placeholder="Nama Anda"
+                  required
+                  error={errors.name}
+                  onChange={() => clear("name")}
+                />
+                <TextField
+                  label="No. WhatsApp"
+                  name="phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="08xx xxxx xxxx"
+                  required
+                  error={errors.phone}
+                  onChange={() => clear("phone")}
+                />
               </div>
-              <div>
-                <label htmlFor="contact-phone" className="mb-1.5 block text-sm font-medium text-ink-700">No. WhatsApp</label>
-                <input id="contact-phone" required name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="08xx xxxx xxxx" className={fieldClass} />
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="contact-topic"
+                  className="text-sm font-semibold text-ink-700"
+                >
+                  Topik
+                </label>
+                <select
+                  id="contact-topic"
+                  name="topic"
+                  className={`${fieldControlClass} h-12`}
+                  defaultValue={topics[0]}
+                >
+                  {topics.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </div>
-            <div>
-              <label htmlFor="contact-email" className="mb-1.5 block text-sm font-medium text-ink-700">Email</label>
-              <input id="contact-email" required type="email" name="email" autoComplete="email" placeholder="email@contoh.com" className={fieldClass} />
-            </div>
-            <div>
-              <label htmlFor="contact-service" className="mb-1.5 block text-sm font-medium text-ink-700">Layanan yang diminati</label>
-              <select id="contact-service" name="service" className={fieldClass} defaultValue="">
-                <option value="" disabled>Pilih layanan</option>
-                {services.map((s) => (
-                  <option key={s.slug} value={s.title}>{s.title}</option>
-                ))}
-                <option value="Lainnya">Lainnya</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="contact-message" className="mb-1.5 block text-sm font-medium text-ink-700">Pesan</label>
-              <textarea
-                id="contact-message"
+              <TextAreaField
+                label="Pesan"
                 name="message"
                 rows={4}
-                placeholder="Ceritakan kebutuhan Anda…"
-                className={`${fieldClass} resize-none`}
+                placeholder="Ceritakan pertanyaan atau kebutuhan Anda…"
+                className="resize-none"
+                required
+                error={errors.message}
+                onChange={() => clear("message")}
               />
-            </div>
 
-            <div role="alert" aria-live="assertive" aria-atomic="true">
-              {error && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                  {error}
-                </div>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={status === "loading"}
-              className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary-600 font-semibold text-white shadow-soft transition-all hover:bg-primary-700 hover:shadow-glow disabled:opacity-70"
-            >
-              {status === "loading" ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" /> Mengirim…
-                </>
-              ) : (
-                <>
-                  Kirim Permintaan
-                  <Send className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </>
-              )}
-            </button>
-            <p className="text-center text-xs text-ink-400">
-              Dengan mengirim, Anda menyetujui kebijakan privasi kami.
-            </p>
-          </motion.form>
+              <button
+                type="submit"
+                className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary-600 font-semibold text-white shadow-soft transition-all hover:bg-primary-700 hover:shadow-glow"
+              >
+                Kirim via WhatsApp
+                <Send className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </button>
+              <p className="text-center text-xs text-ink-400">
+                Dengan mengirim, Anda menyetujui kebijakan privasi kami.
+              </p>
+            </form>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

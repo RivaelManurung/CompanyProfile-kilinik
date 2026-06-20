@@ -9,13 +9,13 @@ import { site } from "@/lib/site";
 import { locations } from "@/lib/data";
 
 export const metadata: Metadata = {
-  title: "Kontak & Janji Temu",
+  title: "Kontak",
   description:
-    "Hubungi Klinik Sehat Nusantara untuk membuat janji konsultasi. Telepon, WhatsApp, email, atau kunjungi lokasi kami.",
+    "Hubungi Klinik Sehat Nusantara — telepon, WhatsApp, email, atau kunjungi lokasi kami. Untuk membuat janji temu, gunakan portal janji temu.",
 };
 
 const contactItems = [
-  { icon: MapPin, label: "Alamat", value: `${site.address.line1}, ${site.address.line2}`, href: "https://maps.google.com" },
+  { icon: MapPin, label: "Alamat", value: `${site.address.line1}, ${site.address.line2}`, href: `https://www.google.com/maps?q=${encodeURIComponent(`${site.address.line1}, ${site.address.line2}`)}` },
   { icon: Phone, label: "Telepon", value: site.phoneDisplay, href: `tel:${site.phone}` },
   { icon: Mail, label: "Email", value: site.email, href: `mailto:${site.email}` },
   { icon: Clock, label: "Jam Operasional", value: site.hours },
@@ -27,8 +27,8 @@ export default function KontakPage() {
       <PageBanner
         crumb="Kontak"
         eyebrow="Hubungi Kami"
-        title="Buat janji temu dengan mudah"
-        description="Isi formulir di bawah atau hubungi kami langsung. Tim kami siap membantu kebutuhan kesehatan Anda."
+        title="Ada pertanyaan? Kami siap membantu"
+        description="Kirim pesan atau hubungi kami langsung. Untuk membuat janji temu, gunakan portal janji temu yang lebih cepat dan terjadwal."
       />
 
       <section className="pb-20 lg:pb-28">

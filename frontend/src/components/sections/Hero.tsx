@@ -24,7 +24,7 @@ export function Hero() {
             className="relative mx-auto w-full max-w-[420px] lg:max-w-none"
           >
             {/* Main Image Container */}
-            <div className="relative aspect-[4/5] overflow-hidden rounded-[2.5rem] border border-ink-150/40 bg-white p-2 shadow-card sm:aspect-[1/1] lg:aspect-[4/5]">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[2.5rem] border border-ink-200/40 bg-white p-2 shadow-card sm:aspect-[1/1] lg:aspect-[4/5]">
               <div className="relative h-full w-full overflow-hidden rounded-[2rem] bg-ink-50">
                 <Image
                   src="/hero/doctor-patient-consult.png"
@@ -163,11 +163,11 @@ export function Hero() {
               <ShieldCheck className="h-4 w-4 text-primary-500 shrink-0" />
               <span>Menerima 30+ Mitra Asuransi</span>
             </div>
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-650">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-600">
               <span className="flex items-center text-warning shrink-0">
                 <Star className="h-3.5 w-3.5 fill-current" />
               </span>
-              <span className="font-bold text-ink-850">4.9 / 5.0</span>
+              <span className="font-bold text-ink-900">4.9 / 5.0</span>
               <span className="text-ink-400 font-normal">dari 12K+ pasien</span>
             </div>
           </motion.div>

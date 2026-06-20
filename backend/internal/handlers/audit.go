@@ -10,9 +10,23 @@ import (
 )
 
 func (h *Handler) audit(c *gin.Context, action, resource, resourceID string) {
+	h.recordAudit(c, "admin", c.GetString("adminID"), c.GetString("adminEmail"), action, resource, resourceID)
+}
+
+// auditPatient records a patient-scoped audit entry (actor = the authenticated
+// patient). actorID/actorEmail identify the patient; either may be empty for
+// pre-auth flows (e.g. failed login / forgot-password) where only the email is
+// known.
+func (h *Handler) auditPatient(c *gin.Context, actorID, actorEmail, action, resource, resourceID string) {
+	h.recordAudit(c, "patient", actorID, actorEmail, action, resource, resourceID)
+}
+
+// recordAudit is the shared audit-write path for every actor type.
+func (h *Handler) recordAudit(c *gin.Context, actorType, actorID, actorEmail, action, resource, resourceID string) {
 	entry := models.AuditLog{
-		AdminID:    c.GetString("adminID"),
-		AdminEmail: c.GetString("adminEmail"),
+		ActorType:  actorType,
+		AdminID:    actorID,
+		AdminEmail: actorEmail,
 		Action:     action,
 		Resource:   resource,
 		ResourceID: resourceID,

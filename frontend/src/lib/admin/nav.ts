@@ -9,6 +9,7 @@ import {
   Stethoscope,
   Tags,
   Users,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 import { permissions } from "./permissions";
@@ -32,6 +33,7 @@ export const adminNavGroups: NavGroup[] = [
     items: [
       { label: "Overview", href: "/admin", icon: LayoutDashboard, permission: permissions.dashboardRead, exact: true },
       { label: "Appointments", href: "/admin/appointments", icon: ClipboardList, permission: permissions.appointmentsRead },
+      { label: "Pasien", href: "/admin/patients", icon: UsersRound, permission: permissions.patientsRead },
     ],
   },
   {

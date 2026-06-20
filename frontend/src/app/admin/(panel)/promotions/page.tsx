@@ -86,8 +86,9 @@ export default function PromotionsPage() {
     setLoading(true);
     setError(null);
     try {
-      const params: ListParams = { page, limit, q: q || undefined };
+      const params: ListParams & { campaign?: string } = { page, limit, q: q || undefined };
       if (status) params.status = status;
+      if (campaign) params.campaign = campaign;
       const res = await promotionsApi.list(params);
       setRows(res.data);
       setMeta(res.meta);
@@ -96,7 +97,7 @@ export default function PromotionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, q, status, limit]);
+  }, [page, q, status, campaign, limit]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
@@ -109,11 +110,6 @@ export default function PromotionsPage() {
     }
     router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
   }
-
-  const filteredRows = useMemo(() => {
-    if (!campaign) return rows;
-    return rows.filter((r) => r.campaignType === campaign);
-  }, [rows, campaign]);
 
   const metrics = useMemo(() => {
     const total = meta.total;
@@ -397,9 +393,9 @@ export default function PromotionsPage() {
       </div>
 
       <AdminDataGrid
-        data={filteredRows}
+        data={rows}
         columns={columns}
-        meta={{ ...meta, total: filteredRows.length }}
+        meta={meta}
         loading={loading}
         error={error}
         search={q}

@@ -51,6 +51,20 @@ export interface Patient {
   name: string;
   email: string;
   phone: string;
+  dateOfBirth?: string | null;
+  sex?: string | null;
+  address?: string | null;
+  medicalRecordNo?: string | null;
+  consentAcceptedAt?: string | null;
+  emailVerifiedAt?: string | null;
+  /** Masked NIK, e.g. `***-****-1234`. */
+  nik?: string | null;
+}
+
+export interface PatientDataExport {
+  profile: Patient;
+  appointments: PatientAppointment[];
+  exportedAt: string;
 }
 
 export interface Slot {
@@ -78,7 +92,17 @@ export interface PatientAppointment {
 }
 
 export const patientApi = {
-  register: (body: { name: string; email: string; phone: string; password: string }) =>
+  register: (body: {
+    name: string;
+    email: string;
+    phone: string;
+    password: string;
+    consentAccepted: boolean;
+    nik?: string;
+    dateOfBirth?: string;
+    sex?: string;
+    address?: string;
+  }) =>
     pfetch<Patient>("/patient/register", { method: "POST", body: JSON.stringify(body) }),
 
   login: (body: { email: string; password: string }) =>
@@ -93,7 +117,33 @@ export const patientApi = {
     phone?: string;
     currentPassword?: string;
     newPassword?: string;
+    dateOfBirth?: string;
+    sex?: string;
+    address?: string;
+    nik?: string;
   }) => pfetch<Patient>("/patient/me", { method: "PUT", body: JSON.stringify(body) }),
+
+  forgotPassword: (email: string) =>
+    pfetch<{ message: string }>("/patient/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: (body: { token: string; newPassword: string }) =>
+    pfetch<{ message?: string }>("/patient/reset-password", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  verifyEmail: (token: string) =>
+    pfetch<{ message?: string }>("/patient/verify-email", {
+      method: "POST",
+      body: JSON.stringify({ token }),
+    }),
+
+  exportData: () => pfetch<PatientDataExport>("/patient/me/export"),
+
+  deleteAccount: () => pfetch<{ ok?: boolean }>("/patient/me", { method: "DELETE" }),
 
   myAppointments: () => pfetch<PatientAppointment[]>("/patient/appointments"),
 
@@ -104,6 +154,18 @@ export const patientApi = {
     appointmentTime: string;
     message?: string;
   }) => pfetch<PatientAppointment>("/patient/appointments", { method: "POST", body: JSON.stringify(body) }),
+
+  cancelAppointment: (id: number) =>
+    pfetch<PatientAppointment>(`/patient/appointments/${id}/cancel`, { method: "POST" }),
+
+  rescheduleAppointment: (
+    id: number,
+    body: { appointmentDate: string; appointmentTime: string },
+  ) =>
+    pfetch<PatientAppointment>(`/patient/appointments/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
 
   availability: (doctorId: number, date: string) =>
     pfetch<AvailabilityResult>(`/public/availability?doctorId=${doctorId}&date=${date}`),
