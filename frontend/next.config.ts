@@ -17,8 +17,11 @@ if (!process.env.NEXT_PUBLIC_API_URL) {
 }
 
 const nextConfig: NextConfig = {
+  compress: true,
+  poweredByHeader: false,
   images: {
     formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 60,
     remotePatterns: [
       ...(backend
         ? [
@@ -33,7 +36,15 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
-    optimizePackageImports: ["lucide-react"],
+    optimizeCss: true,
+    optimizePackageImports: [
+      "lucide-react",
+      "recharts",
+      "framer-motion",
+      "date-fns",
+      "radix-ui",
+      "sonner"
+    ],
   },
   async headers() {
     return [

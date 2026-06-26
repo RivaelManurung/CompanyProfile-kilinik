@@ -4,8 +4,8 @@ import { PageBanner } from "@/components/ui/PageBanner";
 import { CTA } from "@/components/sections/CTA";
 import { Container } from "@/components/ui/Container";
 import { Reveal } from "@/components/ui/Reveal";
-import { ClinicMap } from "@/components/sections/ClinicMap";
 import { getLocations } from "@/lib/public/api";
+import { ClinicMap } from "@/components/sections/ClinicMapDynamic";
 
 export const metadata: Metadata = {
   title: "Lokasi Kami",

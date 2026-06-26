@@ -7,6 +7,7 @@ const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   display: "swap",
+  preload: true,
 });
 
 const jakarta = Plus_Jakarta_Sans({
@@ -14,6 +15,7 @@ const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   weight: ["500", "600", "700", "800"],
   display: "swap",
+  preload: true,
 });
 
 export const metadata: Metadata = {
@@ -73,6 +75,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" className={`${inter.variable} ${jakarta.variable} h-full`} suppressHydrationWarning>
+      <head>
+        <link rel="preload" href="/hero/doctor-patient-consult.png" as="image" />
+      </head>
       <body className="min-h-full bg-white">{children}</body>
     </html>
   );

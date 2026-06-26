@@ -96,10 +96,13 @@ export default async function ArticleDetail({
               <Image
                 src={article.cover}
                 alt={article.title}
-                fill
+                width={768}
+                height={384}
                 priority
-                sizes="(max-width: 768px) 100vw, 768px"
-                className="object-cover"
+                quality={85}
+                placeholder="blur"
+                blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0InzgAAAACXBIWXMAAAsTAAALEwEAmpwYAAAADUlEQVR4nGNgYGBgAAAABAABXv573gAAAABJRU5ErkJggg=="
+                className="w-full h-full object-cover"
               />
             ) : (
               <div className="bg-dots h-full w-full opacity-40" />

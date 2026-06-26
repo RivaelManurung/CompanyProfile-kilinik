@@ -29,10 +29,13 @@ export function Hero() {
                 <Image
                   src="/hero/doctor-patient-consult.png"
                   alt="Dokter SehatNusantara berkonsultasi secara hangat dengan pasien"
-                  fill
+                  width={640}
+                  height={800}
                   priority
-                  sizes="(max-width: 1024px) 100vw, 45vw"
-                  className="object-cover object-[center_25%] transition-transform duration-700 hover:scale-103"
+                  quality={85}
+                  placeholder="blur"
+                  blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAFCAYAAABlh7nmAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAMElEQVR4nGO49u33/7tPfv//8O3Pf4YbT38yMIAEMK4AkgQKIFkYwMAEEgQygqQBxL0W/2G1h+MAAAAASUVORK5CYII="
+                  className="w-full h-full object-cover object-[center_25%] transition-transform duration-700 hover:scale-103"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-ink-950/20 via-transparent to-transparent" />
               </div>

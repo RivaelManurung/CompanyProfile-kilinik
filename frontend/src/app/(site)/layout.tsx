@@ -1,8 +1,8 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { FloatingActions } from "@/components/layout/FloatingActions";
 import { ScrollProgress } from "@/components/layout/ScrollProgress";
 import { PatientAuthProvider } from "@/components/patient/PatientAuthProvider";
+import { FloatingActions } from "@/components/layout/FloatingActionsDynamic";
 
 export default function SiteLayout({
   children,

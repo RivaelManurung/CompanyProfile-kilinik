@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { PageBanner } from "@/components/ui/PageBanner";
 import { Container } from "@/components/ui/Container";
-import { BookingWizard } from "@/components/patient/BookingWizard";
 import { getServices, getDoctors } from "@/lib/public/api";
+import { BookingWizard } from "@/components/patient/BookingWizardDynamic";
 
 export const metadata: Metadata = {
   title: "Buat Janji Temu",

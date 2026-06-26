@@ -4,8 +4,8 @@ import { PageBanner } from "@/components/ui/PageBanner";
 import { Container } from "@/components/ui/Container";
 import { Reveal } from "@/components/ui/Reveal";
 import { ContactForm } from "@/components/sections/ContactForm";
-import { ClinicMap } from "@/components/sections/ClinicMap";
 import { site } from "@/lib/site";
+import { ClinicMap } from "@/components/sections/ClinicMapDynamic";
 import { locations } from "@/lib/data";
 
 export const metadata: Metadata = {
